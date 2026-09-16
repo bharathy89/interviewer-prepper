@@ -18,16 +18,20 @@ let bargeInStreak = 0;
 let userTalking = false;
 let userTalkingTimeout = null;
 const USER_TALKING_HANGOVER_MS = 800; // avoid flickering false between words
+let micResumeAt = 0; // Date.now() timestamp; mic audio isn't forwarded to STT until this passes
+const MIC_RESUME_GRACE_MS = 300; // covers room reverb / buffered audio settling after TTS stops
 
-// Raised from 0.02 — that triggered on ordinary ambient noise (a click, a cough,
-// background sound), which cut off TTS mid-sentence. BARGE_IN_CONSECUTIVE_BUFFERS
-// additionally requires that loudness to be sustained across several buffers in a
-// row (not a single blip) before treating it as the candidate actually starting to
-// talk, mirroring how the server-side VAD avoids reacting to a single noisy frame.
-// echoCancellation is now off (see enableMic) so these numbers are unverified
-// against real speaker/mic hardware — check the console.debug rms/streak log
-// below during a real interruption and retune if it's still not triggering.
-const BARGE_IN_RMS_THRESHOLD = 0.05;
+// Originally raised from 0.02 (that triggered on ordinary ambient noise) to
+// 0.05, then nudged back down slightly now that echoCancellation is back on
+// (see enableMic) — AEC should suppress most of the TTS's own signal, so a
+// genuine interruption spoken over it should still leave enough residual
+// signal to cross a somewhat lower bar. BARGE_IN_CONSECUTIVE_BUFFERS still
+// requires that to be sustained across several buffers (not a single blip)
+// before treating it as the candidate actually starting to talk, mirroring
+// how the server-side VAD avoids reacting to a single noisy frame. Check the
+// console.debug rms/streak log during a real interruption and retune from
+// real numbers if it's still not sensitive enough.
+const BARGE_IN_RMS_THRESHOLD = 0.035;
 const BARGE_IN_CONSECUTIVE_BUFFERS = 3;
 const CODE_SNAPSHOT_DEBOUNCE_MS = 1500;
 const PROACTIVE_POLL_MS = 5000;
@@ -296,6 +300,7 @@ function speak(text) {
 }
 
 async function processSpeechQueue() {
+  micResumeAt = Date.now() + MIC_RESUME_GRACE_MS;
   if (speechQueue.length === 0) {
     speaking = false;
     prefetch = null;
@@ -345,6 +350,7 @@ function stopSpeaking() {
   speaking = false;
   ttsAudio.pause();
   ttsAudio.currentTime = 0;
+  micResumeAt = Date.now() + MIC_RESUME_GRACE_MS;
 }
 
 // --- Mic capture: continuous PCM16 streaming + client-side barge-in detection ---
@@ -442,14 +448,16 @@ async function drainAudioQueue() {
 async function enableMic() {
   pendingAudioChunks = [];
   sendingAudio = false;
-  // echoCancellation off deliberately: on speakers, the browser's own AEC
-  // treats "the sound coming out of the speakers" as noise to remove from the
-  // mic — and a real interruption spoken over that same TTS audio gets
-  // suppressed right along with it, so barge-in silently stops working. The
-  // tradeoff is the TTS's own leaked audio is no longer pre-filtered before
-  // it reaches our own barge-in RMS check below.
+  // echoCancellation back on: turning it off to help barge-in caused a worse
+  // bug — on speakers, the TTS's own leaked audio was strong enough to pass
+  // the VAD and get transcribed verbatim as if the candidate said it (real
+  // report: an assistant message echoed back as a "(spoken)" user turn).
+  // Barge-in is instead helped by NOT forwarding mic audio to the STT
+  // pipeline at all while TTS is speaking (see the isSpeaking() gate below)
+  // — belt and suspenders against self-echo regardless of how good the
+  // browser's AEC is.
   mediaStream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: false, noiseSuppression: true },
+    audio: { echoCancellation: true, noiseSuppression: true },
   });
   audioContext = new AudioContext({ sampleRate: 16000 });
   sourceNode = audioContext.createMediaStreamSource(mediaStream);
@@ -483,7 +491,15 @@ async function enableMic() {
       bargeInStreak = 0;
     }
 
-    enqueueAudioChunk(floatTo16BitPCM(samples));
+    // Never forward mic audio to the STT pipeline while our own TTS is
+    // playing — otherwise there's nothing stopping leaked/reflected TTS
+    // audio from being transcribed as if the candidate said it. A short
+    // grace period after TTS actually stops covers room reverberation /
+    // buffered audio still settling. Barge-in detection above still runs
+    // unconditionally since it's a local RMS check, not a transcription.
+    if (!isSpeaking() && Date.now() >= micResumeAt) {
+      enqueueAudioChunk(floatTo16BitPCM(samples));
+    }
   };
 
   sourceNode.connect(processorNode);
