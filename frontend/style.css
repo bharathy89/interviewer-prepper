@@ -84,7 +84,8 @@ body {
   justify-content: center;
 }
 
-#interview-type-toggle {
+#interview-type-toggle,
+#voice-toggle {
   display: flex;
   gap: 8px;
 }
@@ -129,37 +130,31 @@ body {
   min-height: 18px;
 }
 
-.resume-group {
-  margin-top: 8px;
-}
-
-.resume-group label {
-  font-size: 13px;
-  color: var(--muted);
-}
-
 .resume-list {
   list-style: none;
   margin: 6px 0 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 220px;
+  gap: 8px;
+  max-height: 320px;
   overflow-y: auto;
 }
 
 .resume-item {
   background: #2d2d2d;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 8px 10px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 6px 6px 0;
+  padding: 8px 12px;
   cursor: pointer;
+}
+
+.resume-item.design {
+  border-left-color: #a855f7;
 }
 
 .resume-item:hover {
   background: #3c3c3c;
-  border-color: var(--accent);
 }
 
 .resume-item .resume-title {
@@ -215,6 +210,7 @@ body {
   gap: 12px;
 }
 
+#exit-btn,
 #pause-btn {
   background: #3c3c3c;
   color: var(--text);
@@ -225,6 +221,7 @@ body {
   cursor: pointer;
 }
 
+#exit-btn:hover,
 #pause-btn:hover {
   background: #4a4a4a;
 }
@@ -480,8 +477,9 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 8px 12px 8px 40px;
   border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
 }
 
 #mic-btn {

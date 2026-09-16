@@ -4,6 +4,7 @@ let currentProblem = null;
 let timerInterval = null;
 let startTime = null;
 let interviewType = "coding";
+let selectedVoice = localStorage.getItem("ttsVoice") || "af_heart";
 
 let micEnabled = false;
 let silentMode = false;
@@ -84,11 +85,22 @@ async function loadPickers() {
 
   companySelect.addEventListener("change", () => loadProblems(companySelect.value));
 
-  document.querySelectorAll(".type-btn").forEach((btn) => {
+  document.querySelectorAll("#interview-type-toggle .type-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       interviewType = btn.dataset.type;
-      document.querySelectorAll(".type-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      document
+        .querySelectorAll("#interview-type-toggle .type-btn")
+        .forEach((b) => b.classList.toggle("active", b === btn));
       loadProblems(companySelect.value);
+    });
+  });
+
+  document.querySelectorAll(".voice-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.voice === selectedVoice);
+    btn.addEventListener("click", () => {
+      selectedVoice = btn.dataset.voice;
+      localStorage.setItem("ttsVoice", selectedVoice);
+      document.querySelectorAll(".voice-btn").forEach((b) => b.classList.toggle("active", b === btn));
     });
   });
 
@@ -246,7 +258,7 @@ function fetchTtsBlob(text) {
   return fetch("/api/tts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, voice: selectedVoice }),
   }).then((res) => {
     if (!res.ok) throw new Error(`TTS request failed: ${res.status}`);
     const synthMs = res.headers.get("X-Synth-Ms");
@@ -546,6 +558,35 @@ async function togglePause() {
   }
 }
 
+// Leaves the interview screen without ending the interview — it's already
+// persisted server-side (see backend/persistence.py), so this is just a
+// clean teardown of client-side state; the "Resume a session" list picks it
+// right back up.
+async function exitInterview() {
+  if (micEnabled) await toggleMic();
+  stopSpeaking();
+  clearInterval(timerInterval);
+  clearInterval(proactivePollTimer);
+  clearTimeout(codeSnapshotTimer);
+
+  if (editor) {
+    editor.dispose();
+    editor = null;
+  }
+
+  isPaused = false;
+  setControlsDisabledForPause(false);
+  $("pause-btn").textContent = "⏸ Pause";
+  $("pause-btn").classList.remove("active");
+
+  sessionId = null;
+  currentProblem = null;
+
+  $("interview-screen").classList.add("hidden");
+  $("start-screen").classList.remove("hidden");
+  await loadResumableSessions();
+}
+
 // --- Passive monitoring: debounced code snapshots + proactive-hint polling ---
 
 function scheduleCodeSnapshot() {
@@ -623,8 +664,8 @@ async function startInterview() {
 }
 
 // --- Resuming a previous session: sessions survive a server restart (see
-// backend/persistence.py), so the start screen offers a way back into them,
-// grouped by interview type. ---
+// backend/persistence.py), so the start screen offers a way back into them —
+// one recency-sorted list, a colored left edge distinguishing the type. ---
 
 function formatRelativeTime(epochSeconds) {
   const diffMs = Date.now() - epochSeconds * 1000;
@@ -636,36 +677,34 @@ function formatRelativeTime(epochSeconds) {
   return `${Math.round(hours / 24)}d ago`;
 }
 
-function renderResumeGroup(groupId, listId, sessions) {
-  const group = $(groupId);
-  const list = $(listId);
-  list.innerHTML = "";
-  group.classList.toggle("hidden", sessions.length === 0);
-
-  for (const s of sessions) {
-    const li = document.createElement("li");
-    li.className = "resume-item";
-    const title = document.createElement("div");
-    title.className = "resume-title";
-    title.textContent = s.problem_title;
-    const meta = document.createElement("div");
-    meta.className = "resume-meta";
-    const parts = [s.company || "General", `${s.message_count} messages`, formatRelativeTime(s.last_activity)];
-    meta.textContent = parts.join(" · ");
-    li.appendChild(title);
-    li.appendChild(meta);
-    li.addEventListener("click", () => resumeSession(s.session_id));
-    list.appendChild(li);
-  }
-}
-
 async function loadResumableSessions() {
   try {
     const sessions = await api("/api/sessions");
-    const coding = sessions.filter((s) => s.interview_type !== "system_design");
-    const design = sessions.filter((s) => s.interview_type === "system_design");
-    renderResumeGroup("resume-coding-group", "resume-coding-list", coding);
-    renderResumeGroup("resume-design-group", "resume-design-list", design);
+    const list = $("resume-list");
+    list.innerHTML = "";
+
+    for (const s of sessions) {
+      const isDesign = s.interview_type === "system_design";
+      const li = document.createElement("li");
+      li.className = `resume-item ${isDesign ? "design" : "coding"}`;
+      const title = document.createElement("div");
+      title.className = "resume-title";
+      title.textContent = s.problem_title;
+      const meta = document.createElement("div");
+      meta.className = "resume-meta";
+      const parts = [
+        isDesign ? "System Design" : "Coding",
+        s.company || "General",
+        `${s.message_count} messages`,
+        formatRelativeTime(s.last_activity),
+      ];
+      meta.textContent = parts.join(" · ");
+      li.appendChild(title);
+      li.appendChild(meta);
+      li.addEventListener("click", () => resumeSession(s.session_id));
+      list.appendChild(li);
+    }
+
     $("resume-panel").classList.toggle("hidden", sessions.length === 0);
   } catch (err) {
     console.warn("loadResumableSessions failed:", err.message);
@@ -822,6 +861,7 @@ $("silent-mode-btn").addEventListener("click", toggleSilentMode);
 $("review-diagram-btn").addEventListener("click", reviewDiagram);
 $("suggest-update-btn").addEventListener("click", suggestDiagramUpdate);
 $("pause-btn").addEventListener("click", togglePause);
+$("exit-btn").addEventListener("click", exitInterview);
 $("chat-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();

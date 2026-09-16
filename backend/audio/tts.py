@@ -22,6 +22,20 @@ _DOWNLOADS = {
 
 DEFAULT_VOICE = "af_heart"
 
+# Each voice reads naturally at a different pace — tuned by ear per voice
+# rather than one global speed. Frontend only picks the voice (see
+# frontend/app.js voice toggle); the speed follows from that automatically.
+VOICE_SPEEDS = {
+    "af_heart": 0.85,
+    "am_onyx": 0.9,
+}
+DEFAULT_SPEED = 0.8
+
+# Voices the frontend is allowed to request. Kokoro ships 54 voices total;
+# restricting the API to a known-good set avoids passing arbitrary client
+# input straight into voice lookup.
+ALLOWED_VOICES = set(VOICE_SPEEDS)
+
 _kokoro: Kokoro | None = None
 
 
@@ -51,8 +65,11 @@ def _strip_markdown(text: str) -> str:
 
 
 def synthesize(text: str, voice: str = DEFAULT_VOICE) -> bytes:
+    if voice not in ALLOWED_VOICES:
+        voice = DEFAULT_VOICE
+    speed = VOICE_SPEEDS.get(voice, DEFAULT_SPEED)
     samples, sample_rate = _get_kokoro().create(
-        _strip_markdown(text), voice=voice, speed=1.0, lang="en-us"
+        _strip_markdown(text), voice=voice, speed=speed, lang="en-us"
     )
     buffer = io.BytesIO()
     sf.write(buffer, samples, sample_rate, format="WAV")

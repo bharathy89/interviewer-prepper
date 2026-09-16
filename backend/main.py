@@ -105,6 +105,7 @@ class MicRequest(BaseModel):
 
 class TTSRequest(BaseModel):
     text: str
+    voice: str = tts.DEFAULT_VOICE
 
 
 class CanvasRequest(BaseModel):
@@ -404,7 +405,7 @@ def proactive(session_id: str):
 @app.post("/api/tts")
 def synthesize_speech(req: TTSRequest):
     t0 = time.time()
-    audio = tts.synthesize(req.text)
+    audio = tts.synthesize(req.text, voice=req.voice)
     synth_ms = round((time.time() - t0) * 1000)
     return Response(
         content=audio, media_type="audio/wav", headers={"X-Synth-Ms": str(synth_ms)}
@@ -494,14 +495,14 @@ async def stt_test_chunk(request: Request):
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    # There's no build step / hashed filenames for app.js and canvas.js, so a
+    # There's no build step / hashed filenames for the frontend, so a
     # browser's disk cache can silently keep serving a stale copy after an
     # edit even past a hard refresh. Stamping each with its own mtime as a
     # query string forces a cache miss exactly when the file actually changed.
     html = (FRONTEND_DIR / "index.html").read_text()
-    for name in ("canvas.js", "app.js"):
+    for name, attr in (("canvas.js", "src"), ("app.js", "src"), ("style.css", "href")):
         mtime = int((FRONTEND_DIR / name).stat().st_mtime)
-        html = html.replace(f'src="{name}"', f'src="{name}?v={mtime}"')
+        html = html.replace(f'{attr}="{name}"', f'{attr}="{name}?v={mtime}"')
     return html
 
 
