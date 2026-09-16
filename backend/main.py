@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
@@ -63,6 +63,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Interviewer Prepper", lifespan=lifespan)
 app.add_middleware(auth.PassphraseGateMiddleware)
+
+
+@app.middleware("http")
+async def no_cache_static_files(request: Request, call_next):
+    # There's no build step / hashed filenames for the frontend, so a stale
+    # browser cache silently serves an old app.js/canvas.js after an edit —
+    # force revalidation on every load for anything that isn't an API call.
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
@@ -168,6 +179,43 @@ def _get_session(session_id: str) -> dict:
     return session
 
 
+@app.get("/api/sessions")
+def list_sessions():
+    summaries = []
+    for session_id, session in SESSIONS.items():
+        last_activity = max(
+            session["start_time"], session["last_code_change_at"], session["last_hint_at"]
+        )
+        summaries.append(
+            {
+                "session_id": session_id,
+                "interview_type": session["interview_type"],
+                "company": session["company"],
+                "problem_title": session["problem"]["title"],
+                "problem_difficulty": session["problem"].get("difficulty"),
+                "start_time": session["start_time"],
+                "last_activity": last_activity,
+                "message_count": len(session["history"]),
+            }
+        )
+    summaries.sort(key=lambda s: s["last_activity"], reverse=True)
+    return summaries
+
+
+@app.get("/api/session/{session_id}")
+def get_session(session_id: str):
+    session = _get_session(session_id)
+    return {
+        "session_id": session_id,
+        "problem": session["problem"],
+        "company": session["company"],
+        "interview_type": session["interview_type"],
+        "history": session["history"],
+        "last_code": session["last_code"],
+        "start_time": session["start_time"],
+    }
+
+
 @app.post("/api/session/{session_id}/chat")
 def chat(session_id: str, req: ChatRequest):
     session = _get_session(session_id)
@@ -215,27 +263,15 @@ def set_mic(session_id: str, req: MicRequest):
     return {"mic_enabled": session["mic_enabled"]}
 
 
-@app.post("/api/session/{session_id}/audio_chunk")
-async def audio_chunk(session_id: str, request: Request):
-    session = _get_session(session_id)
-    if not session["mic_enabled"]:
-        return {"transcript": None, "reply": None}
-
-    chunk = await request.body()
-    utterance = session["vad_segmenter"].feed(chunk)
-    if utterance is None or len(utterance) < MIN_UTTERANCE_BYTES:
-        # Too short to be real speech (a click/cough) — skip Whisper entirely
-        # rather than risk it hallucinating on a near-silent clip.
-        return {"transcript": None, "reply": None}
-
-    stt_t0 = time.time()
-    transcript = await run_in_threadpool(stt.transcribe, utterance)
-    stt_ms = round((time.time() - stt_t0) * 1000)
-    if not transcript:
-        return {"transcript": None, "reply": None, "stt_ms": stt_ms}
-
-    session["history"].append({"role": "user", "content": f'(spoken) "{transcript}"'})
-    _persist(session_id)
+async def _generate_voice_reply(session_id: str, transcript: str) -> None:
+    # Runs as a background task, off the audio_chunk request/response cycle —
+    # the LLM call this makes is the slow part (1-3+ seconds even on a fast
+    # cloud model), and blocking the transcript response on it was the real
+    # cause of "the transcript takes a few seconds to show up": the frontend
+    # was waiting on this whole call before it ever saw what was said.
+    session = SESSIONS.get(session_id)
+    if session is None:
+        return
 
     try:
         if session["interview_type"] == "system_design":
@@ -250,14 +286,44 @@ async def audio_chunk(session_id: str, request: Request):
                 session["problem"], session["company"], session["history"], session["last_code"], transcript,
             )
     except InterviewerUnavailable as exc:
-        return {"transcript": transcript, "reply": str(exc), "stt_ms": stt_ms}
+        reply = str(exc)
 
     if reply:
         session["history"].append({"role": "assistant", "content": reply})
         monitor.mark_hint_given(session)
         _persist(session_id)
+    session["pending_reply"] = reply
 
-    return {"transcript": transcript, "reply": reply, "stt_ms": stt_ms}
+
+@app.post("/api/session/{session_id}/audio_chunk")
+async def audio_chunk(session_id: str, request: Request):
+    session = _get_session(session_id)
+    if not session["mic_enabled"]:
+        return {"transcript": None, "reply": None}
+
+    chunk = await request.body()
+    utterance = session["vad_segmenter"].feed(chunk)
+    response = {"transcript": None}
+
+    if utterance is not None and len(utterance) >= MIN_UTTERANCE_BYTES:
+        # Too-short utterances (a click/cough) skip Whisper entirely, rather
+        # than risk it hallucinating on a near-silent clip.
+        stt_t0 = time.time()
+        transcript = await run_in_threadpool(stt.transcribe, utterance)
+        response["stt_ms"] = round((time.time() - stt_t0) * 1000)
+
+        if transcript:
+            response["transcript"] = transcript
+            session["history"].append({"role": "user", "content": f'(spoken) "{transcript}"'})
+            _persist(session_id)
+            asyncio.create_task(_generate_voice_reply(session_id, transcript))
+
+    # audio_chunk fires continuously while the mic is on, so a reply that
+    # finished computing (from this utterance or an earlier one) rides along
+    # on whichever poll comes next, instead of holding up the transcript.
+    response["reply"] = session.pop("pending_reply", None)
+
+    return response
 
 
 @app.post("/api/session/{session_id}/code_snapshot")
@@ -424,6 +490,19 @@ async def stt_test_chunk(request: Request):
             _STT_TEST_BUSY = False
 
     return {"final": None, "partial": None}
+
+
+@app.get("/", response_class=HTMLResponse)
+def index():
+    # There's no build step / hashed filenames for app.js and canvas.js, so a
+    # browser's disk cache can silently keep serving a stale copy after an
+    # edit even past a hard refresh. Stamping each with its own mtime as a
+    # query string forces a cache miss exactly when the file actually changed.
+    html = (FRONTEND_DIR / "index.html").read_text()
+    for name in ("canvas.js", "app.js"):
+        mtime = int((FRONTEND_DIR / name).stat().st_mtime)
+        html = html.replace(f'src="{name}"', f'src="{name}?v={mtime}"')
+    return html
 
 
 app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")

@@ -37,6 +37,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
 .start-card {
@@ -125,6 +127,50 @@ body {
   color: var(--fail);
   font-size: 13px;
   min-height: 18px;
+}
+
+.resume-group {
+  margin-top: 8px;
+}
+
+.resume-group label {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.resume-list {
+  list-style: none;
+  margin: 6px 0 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.resume-item {
+  background: #2d2d2d;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.resume-item:hover {
+  background: #3c3c3c;
+  border-color: var(--accent);
+}
+
+.resume-item .resume-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.resume-item .resume-meta {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
 }
 
 /* Interview screen */

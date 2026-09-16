@@ -27,20 +27,22 @@ function handleExcalidrawChange() {
   }, 1500);
 }
 
-function initCanvas() {
+function initCanvas(initialElements) {
   const container = document.getElementById("excalidraw-container");
   if (!excalidrawRoot) {
     excalidrawRoot = ReactDOM.createRoot(container);
   }
-  excalidrawRoot.render(
-    React.createElement(ExcalidrawLib.Excalidraw, {
-      excalidrawAPI: (api) => {
-        excalidrawAPI = api;
-      },
-      onChange: handleExcalidrawChange,
-      theme: "dark",
-    })
-  );
+  const props = {
+    excalidrawAPI: (api) => {
+      excalidrawAPI = api;
+    },
+    onChange: handleExcalidrawChange,
+    theme: "dark",
+  };
+  if (initialElements && initialElements.length > 0) {
+    props.initialData = { elements: initialElements };
+  }
+  excalidrawRoot.render(React.createElement(ExcalidrawLib.Excalidraw, props));
 }
 
 function resetCanvasState() {

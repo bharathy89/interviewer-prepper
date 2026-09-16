@@ -57,6 +57,7 @@ async function submitPassphrase() {
     $("gate-screen").classList.add("hidden");
     $("start-screen").classList.remove("hidden");
     await loadPickers();
+    await loadResumableSessions();
   } catch (err) {
     $("gate-error").textContent = "Incorrect passphrase.";
   }
@@ -178,8 +179,8 @@ function updateTimerDisplay() {
   $("timer").textContent = `${mins}:${secs}`;
 }
 
-function startTimer() {
-  startTime = Date.now();
+function startTimer(customStartTime) {
+  startTime = customStartTime || Date.now();
   timerInterval = setInterval(updateTimerDisplay, 1000);
 }
 
@@ -613,10 +614,113 @@ async function startInterview() {
     speak(data.opening_message);
     startTimer();
     startProactivePolling();
+    if (!silentMode) await toggleMic();
   } catch (err) {
     $("start-error").textContent = err.message;
     $("start-btn").disabled = false;
     $("start-btn").textContent = "Start Interview";
+  }
+}
+
+// --- Resuming a previous session: sessions survive a server restart (see
+// backend/persistence.py), so the start screen offers a way back into them,
+// grouped by interview type. ---
+
+function formatRelativeTime(epochSeconds) {
+  const diffMs = Date.now() - epochSeconds * 1000;
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
+function renderResumeGroup(groupId, listId, sessions) {
+  const group = $(groupId);
+  const list = $(listId);
+  list.innerHTML = "";
+  group.classList.toggle("hidden", sessions.length === 0);
+
+  for (const s of sessions) {
+    const li = document.createElement("li");
+    li.className = "resume-item";
+    const title = document.createElement("div");
+    title.className = "resume-title";
+    title.textContent = s.problem_title;
+    const meta = document.createElement("div");
+    meta.className = "resume-meta";
+    const parts = [s.company || "General", `${s.message_count} messages`, formatRelativeTime(s.last_activity)];
+    meta.textContent = parts.join(" · ");
+    li.appendChild(title);
+    li.appendChild(meta);
+    li.addEventListener("click", () => resumeSession(s.session_id));
+    list.appendChild(li);
+  }
+}
+
+async function loadResumableSessions() {
+  try {
+    const sessions = await api("/api/sessions");
+    const coding = sessions.filter((s) => s.interview_type !== "system_design");
+    const design = sessions.filter((s) => s.interview_type === "system_design");
+    renderResumeGroup("resume-coding-group", "resume-coding-list", coding);
+    renderResumeGroup("resume-design-group", "resume-design-list", design);
+    $("resume-panel").classList.toggle("hidden", sessions.length === 0);
+  } catch (err) {
+    console.warn("loadResumableSessions failed:", err.message);
+  }
+}
+
+// Coding-mode chat history stores the candidate's code appended to their
+// message (so the LLM sees it) — strip that back off for display, so a
+// resumed chat bubble shows what the candidate actually typed.
+function displayContent(content) {
+  const marker = "\n\n--- Candidate's current code ---";
+  const idx = content.indexOf(marker);
+  return idx === -1 ? content : content.slice(0, idx);
+}
+
+async function resumeSession(id) {
+  try {
+    const data = await api(`/api/session/${id}`);
+    const isDesign = data.interview_type === "system_design";
+
+    sessionId = data.session_id;
+    currentProblem = data.problem;
+    interviewType = data.interview_type;
+
+    $("start-screen").classList.add("hidden");
+    $("interview-screen").classList.remove("hidden");
+    $("editor-panel").classList.toggle("hidden", isDesign);
+    $("canvas-panel").classList.toggle("hidden", !isDesign);
+
+    renderProblem(data.problem, data.company, isDesign);
+
+    if (isDesign) {
+      resetCanvasState();
+      let elements = [];
+      try {
+        elements = JSON.parse(data.last_code || "[]");
+      } catch {
+        elements = [];
+      }
+      initCanvas(elements);
+    } else {
+      await initMonaco(data.last_code || data.problem.starter_code);
+      editor.onDidChangeModelContent(scheduleCodeSnapshot);
+    }
+
+    $("chat-messages").innerHTML = "";
+    for (const turn of data.history) {
+      addChatBubble(turn.role, displayContent(turn.content));
+    }
+
+    startTimer(data.start_time * 1000);
+    startProactivePolling();
+    if (!silentMode) await toggleMic();
+  } catch (err) {
+    $("start-error").textContent = err.message;
   }
 }
 
@@ -742,5 +846,8 @@ $("chat-panel-toggle").addEventListener("click", () => {
 });
 
 loadPickers()
-  .then(() => $("start-screen").classList.remove("hidden"))
+  .then(() => {
+    $("start-screen").classList.remove("hidden");
+    return loadResumableSessions();
+  })
   .catch(() => {}); // a 401 already triggered showGateScreen() inside api()
