@@ -90,8 +90,10 @@ def maybe_intervene(
     """Decide whether the interviewer should proactively say something right now.
 
     Returns None if nothing is warranted, otherwise a short spoken-style message.
-    Called both when a voice utterance just completed (transcript set — always gets
-    a reply, if only a brief acknowledgment) and from the periodic check-in poll
+    Called both when a voice utterance just completed (transcript set — gets a real
+    reply or a brief acknowledgment for anything beyond pure filler; main.py already
+    skips this call entirely for filler like "okay"/"mm-hmm") and from the periodic
+    check-in poll
     (transcript None, a flat few-minutes cadence — see monitor.py — where staying
     silent is a valid outcome).
     """
@@ -99,10 +101,12 @@ def maybe_intervene(
         trigger_note = f'The candidate just said: "{transcript}"'
         reply_instructions = (
             "If they asked a direct question or want something clarified, respond in 1-2 "
-            'sentences. Otherwise they\'re just narrating their thinking as they design — '
-            'acknowledge briefly (a short variation of "okay, continue" or "sounds good, keep '
-            'going") so they know you\'re listening; don\'t ask a new question or volunteer a '
-            "point they didn't ask for."
+            'sentences. If it\'s just filler or a backchannel ("okay", "yeah", "mm-hmm", "got '
+            f'it") with no real content, reply with exactly the single token {NO_COMMENT} and '
+            "nothing else — don't acknowledge these. Otherwise they're narrating their thinking "
+            'as they design — acknowledge briefly (a short variation of "okay, continue" or '
+            '"sounds good, keep going") so they know you\'re listening; don\'t ask a new question '
+            "or volunteer a point they didn't ask for."
         )
     else:
         trigger_note = "Periodic check-in — the candidate hasn't said anything in a while."

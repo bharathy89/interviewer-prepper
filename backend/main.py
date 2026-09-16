@@ -22,6 +22,21 @@ from .problems import loader
 MIN_UTTERANCE_SECONDS = 0.6
 MIN_UTTERANCE_BYTES = int(16000 * 2 * MIN_UTTERANCE_SECONDS)  # 16kHz, 16-bit mono
 
+# Pure backchannel ("okay", "mm-hmm") while the candidate is thinking out loud
+# isn't worth a round trip to the LLM — every one of these used to trigger a
+# full "sounds good, keep going" reply, which in practice meant the
+# interviewer talked over the candidate every few seconds. Skip the call
+# entirely for these; the transcript still shows up in the chat log either way.
+_FILLER_TRANSCRIPTS = {
+    "okay", "ok", "yeah", "yep", "yup", "mhm", "mm-hmm", "mm hmm", "uh-huh",
+    "uh huh", "got it", "sure", "right", "hmm", "mm", "um", "uh", "alright",
+    "cool", "gotcha",
+}
+
+
+def _is_filler(transcript: str) -> bool:
+    return transcript.strip(" .,!?").lower() in _FILLER_TRANSCRIPTS
+
 SESSIONS: dict[str, dict] = {}
 
 # Sessions are only ever kept in memory, so a long-running public instance
@@ -328,7 +343,8 @@ async def audio_chunk(session_id: str, request: Request):
             response["transcript"] = transcript
             session["history"].append({"role": "user", "content": f'(spoken) "{transcript}"'})
             _persist(session_id)
-            asyncio.create_task(_generate_voice_reply(session_id, transcript))
+            if not _is_filler(transcript):
+                asyncio.create_task(_generate_voice_reply(session_id, transcript))
 
     # audio_chunk fires continuously while the mic is on, so a reply that
     # finished computing (from this utterance or an earlier one) rides along
