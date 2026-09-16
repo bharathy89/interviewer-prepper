@@ -1,0 +1,29 @@
+{
+  "id": "single_number",
+  "title": "Single Number",
+  "difficulty": "Easy",
+  "topics": ["bit manipulation", "array"],
+  "companies": ["Amazon", "Apple", "Google"],
+  "prompt": "Given a non-empty array of integers `nums` where every element appears twice except for one, find that single one. Your algorithm should run in O(n) time and use only O(1) extra space.",
+  "constraints": [
+    "1 <= len(nums) <= 3 * 10^4",
+    "Every element appears exactly twice except for one, which appears exactly once."
+  ],
+  "function_name": "single_number",
+  "starter_code": "from typing import List\n\n\ndef single_number(nums: List[int]) -> int:\n    pass\n",
+  "examples": [
+    {"input": "nums = [2,2,1]", "output": "1"},
+    {"input": "nums = [4,1,2,1,2]", "output": "4"}
+  ],
+  "test_cases": [
+    {"args": [[2, 2, 1]], "expected": 1},
+    {"args": [[4, 1, 2, 1, 2]], "expected": 4},
+    {"args": [[1]], "expected": 1},
+    {"args": [[7, 3, 7]], "expected": 3}
+  ],
+  "hints": [
+    "A hash map/set would work but uses O(n) space — the O(1) space constraint is a strong hint toward XOR.",
+    "XOR-ing a number with itself gives 0, and XOR-ing with 0 gives the number back unchanged.",
+    "XOR every element together; every pair cancels out, leaving just the single number."
+  ]
+}

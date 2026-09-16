@@ -1,0 +1,29 @@
+{
+  "id": "rotate_array",
+  "title": "Rotate Array",
+  "difficulty": "Medium",
+  "topics": ["array"],
+  "companies": ["Amazon", "Microsoft"],
+  "prompt": "Given an integer array `nums`, rotate the array to the right by `k` steps, where `k` is non-negative. Return the rotated array (you don't need to mutate in place for this exercise).",
+  "constraints": [
+    "1 <= len(nums) <= 10^5",
+    "0 <= k <= 10^5"
+  ],
+  "function_name": "rotate",
+  "starter_code": "from typing import List\n\n\ndef rotate(nums: List[int], k: int) -> List[int]:\n    pass\n",
+  "examples": [
+    {"input": "nums = [1,2,3,4,5,6,7], k = 3", "output": "[5,6,7,1,2,3,4]"},
+    {"input": "nums = [-1,-100,3,99], k = 2", "output": "[3,99,-1,-100]"}
+  ],
+  "test_cases": [
+    {"args": [[1, 2, 3, 4, 5, 6, 7], 3], "expected": [5, 6, 7, 1, 2, 3, 4]},
+    {"args": [[-1, -100, 3, 99], 2], "expected": [3, 99, -1, -100]},
+    {"args": [[1, 2], 3], "expected": [2, 1]},
+    {"args": [[1], 5], "expected": [1]}
+  ],
+  "hints": [
+    "k can be larger than the array length — think about what k % len(nums) means.",
+    "A slicing-based solution (last k elements + first n-k elements) is a clean O(n) approach.",
+    "For a follow-up, discuss doing it in-place with O(1) extra space using the reverse-three-times trick."
+  ]
+}

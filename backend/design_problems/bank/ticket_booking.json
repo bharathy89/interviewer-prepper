@@ -1,0 +1,18 @@
+{
+  "id": "ticket_booking",
+  "title": "Design a Ticket Booking System",
+  "difficulty": "Hard",
+  "companies": ["Amazon", "Netflix", "Google"],
+  "prompt": "Design a ticket booking system (like Ticketmaster) for high-demand events: many users try to book seats for the same popular show at the same time, and each seat can only be sold once.",
+  "requirements": [
+    "Functional: browse available seats for an event, hold a seat temporarily while a user checks out, confirm or release the hold, pay and finalize the booking",
+    "Non-functional: no double-booking of a seat under heavy concurrent demand, fair handling of a traffic spike when tickets go on sale"
+  ],
+  "discussion_points": [
+    "Preventing double-booking under concurrency (locking, optimistic concurrency, or a queue-based approach)",
+    "Seat-hold expiration — what happens if a user abandons checkout mid-flow",
+    "Handling a massive traffic spike at on-sale time (queueing/waiting-room patterns)",
+    "Data model for events, seats, holds, and confirmed bookings",
+    "Payment integration and what happens if payment fails after a seat was held"
+  ]
+}

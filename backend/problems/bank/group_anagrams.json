@@ -1,0 +1,28 @@
+{
+  "id": "group_anagrams",
+  "title": "Group Anagrams",
+  "difficulty": "Medium",
+  "topics": ["hash map", "string", "sorting"],
+  "companies": ["Amazon", "Meta", "Microsoft"],
+  "prompt": "Given an array of strings `strs`, group the anagrams together. You can return the answer in any order.",
+  "constraints": [
+    "1 <= len(strs) <= 10^4",
+    "Each string consists of lowercase English letters."
+  ],
+  "function_name": "group_anagrams",
+  "starter_code": "from typing import List\n\n\ndef group_anagrams(strs: List[str]) -> List[List[str]]:\n    pass\n",
+  "examples": [
+    {"input": "strs = [\"eat\",\"tea\",\"tan\",\"ate\",\"nat\",\"bat\"]", "output": "[[\"bat\"],[\"nat\",\"tan\"],[\"ate\",\"eat\",\"tea\"]]"},
+    {"input": "strs = [\"\"]", "output": "[[\"\"]]"}
+  ],
+  "test_cases": [
+    {"args": [["bat"]], "expected": [["bat"]]},
+    {"args": [[""]], "expected": [[""]]},
+    {"args": [["a"]], "expected": [["a"]]}
+  ],
+  "hints": [
+    "Two strings are anagrams if and only if their sorted characters match — that gives you a natural grouping key.",
+    "Use a hash map from the sorted-character key to a list of original strings that match it.",
+    "Return the map's values as your grouped lists."
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "number_of_islands",
+  "title": "Number of Islands",
+  "difficulty": "Medium",
+  "topics": ["graph", "grid", "bfs/dfs"],
+  "companies": ["Meta", "Google DeepMind", "NVIDIA"],
+  "prompt": "Given an `m x n` 2D grid of `'1'`s (land) and `'0'`s (water), return the number of islands — a connected group of land cells connected horizontally or vertically (analogous to counting connected components in a cluster/node topology).",
+  "constraints": [
+    "1 <= m, n <= 300",
+    "grid[i][j] is either '0' or '1'"
+  ],
+  "function_name": "num_islands",
+  "starter_code": "from typing import List\n\n\ndef num_islands(grid: List[List[str]]) -> int:\n    pass\n",
+  "examples": [
+    {"input": "grid = [['1','1','0'],['1','1','0'],['0','0','1']]", "output": "2"}
+  ],
+  "test_cases": [
+    {"args": [[["1", "1", "0"], ["1", "1", "0"], ["0", "0", "1"]]], "expected": 2},
+    {"args": [[["1", "0", "0"], ["0", "1", "0"], ["0", "0", "1"]]], "expected": 3},
+    {"args": [[["0"]]], "expected": 0}
+  ],
+  "hints": [
+    "Scan every cell; when you find unvisited land, that's a new island — flood-fill from there to mark the whole connected region visited.",
+    "BFS or DFS both work for the flood fill; either explore in-place by mutating the grid or track a separate visited set.",
+    "The answer is just the count of times you started a new flood fill from unvisited land."
+  ]
+}

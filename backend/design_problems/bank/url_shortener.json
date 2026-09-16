@@ -1,0 +1,19 @@
+{
+  "id": "url_shortener",
+  "title": "Design a URL Shortener",
+  "difficulty": "Medium",
+  "companies": ["Google", "Amazon", "Meta"],
+  "prompt": "Design a service like bit.ly that takes a long URL and returns a short alias, and redirects visitors from the short alias back to the original URL.",
+  "requirements": [
+    "Functional: shorten a URL, redirect a short code to the original URL, optional custom aliases",
+    "Non-functional: ~100M new URLs/day, read:write ratio around 100:1, redirect latency should be low (well under 100ms), short codes should not be easily guessable"
+  ],
+  "discussion_points": [
+    "Short-code generation scheme (counter + base62, hash-based, or random with collision retry)",
+    "Data store choice and schema (key-value vs relational) at this write volume",
+    "Caching layer for hot redirects",
+    "How to keep redirect latency low as the dataset grows",
+    "Handling custom aliases and collisions",
+    "Analytics/click tracking without slowing down the redirect path"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "sparse_matrix_multiplication",
+  "title": "Sparse Matrix Multiplication",
+  "difficulty": "Medium",
+  "topics": ["array", "matrix", "hash map"],
+  "companies": ["NVIDIA", "Google DeepMind", "Mistral AI"],
+  "prompt": "Given two sparse matrices `A` (m x k) and `B` (k x n), each represented as a 2D list where most entries are 0, return their matrix product `A x B`. Take advantage of sparsity rather than doing the naive dense triple-nested-loop multiplication — the core operation underlying most ML linear algebra, where weight/activation matrices are often sparse.",
+  "constraints": [
+    "1 <= m, k, n <= 100",
+    "-100 <= A[i][j], B[i][j] <= 100",
+    "Most entries of A and B are 0"
+  ],
+  "function_name": "multiply",
+  "starter_code": "from typing import List\n\n\ndef multiply(a: List[List[int]], b: List[List[int]]) -> List[List[int]]:\n    pass\n",
+  "examples": [
+    {"input": "a = [[1,0,0],[-1,0,3]], b = [[7,0,0],[0,0,0],[0,0,1]]", "output": "[[7,0,0],[-7,0,3]]"}
+  ],
+  "test_cases": [
+    {"args": [[[1, 0, 0], [-1, 0, 3]], [[7, 0, 0], [0, 0, 0], [0, 0, 1]]], "expected": [[7, 0, 0], [-7, 0, 3]]},
+    {"args": [[[0]], [[0]]], "expected": [[0]]}
+  ],
+  "hints": [
+    "Skip multiplying by zero entirely — that's where the speedup over the naive O(m*k*n) approach comes from.",
+    "One approach: for each row of A, record only its non-zero (col, value) pairs, then only touch the corresponding rows of B when accumulating the result.",
+    "Think about how sparse the intermediate result can be too, and whether a hash map or a dense output array is more appropriate for accumulation."
+  ]
+}

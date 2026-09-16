@@ -1,0 +1,32 @@
+{
+  "id": "binary_search",
+  "title": "Binary Search",
+  "difficulty": "Easy",
+  "topics": ["binary search", "array"],
+  "companies": ["Google", "Apple"],
+  "prompt": "Given a sorted (ascending) integer array `nums` and an integer `target`, return the index of `target` in `nums`, or -1 if it is not present. Your solution must run in O(log n) time.",
+  "constraints": [
+    "nums is sorted in ascending order.",
+    "All integers in nums are unique.",
+    "1 <= len(nums) <= 10^4"
+  ],
+  "function_name": "search",
+  "starter_code": "from typing import List\n\n\ndef search(nums: List[int], target: int) -> int:\n    pass\n",
+  "examples": [
+    {"input": "nums = [-1, 0, 3, 5, 9, 12], target = 9", "output": "4"},
+    {"input": "nums = [-1, 0, 3, 5, 9, 12], target = 2", "output": "-1"}
+  ],
+  "test_cases": [
+    {"args": [[-1, 0, 3, 5, 9, 12], 9], "expected": 4},
+    {"args": [[-1, 0, 3, 5, 9, 12], 2], "expected": -1},
+    {"args": [[5], 5], "expected": 0},
+    {"args": [[5], -5], "expected": -1},
+    {"args": [[1, 2, 3, 4, 5, 6, 7, 8], 1], "expected": 0},
+    {"args": [[1, 2, 3, 4, 5, 6, 7, 8], 8], "expected": 7}
+  ],
+  "hints": [
+    "The O(log n) requirement is a strong hint — think divide and conquer.",
+    "Maintain a low and high pointer, compare nums[mid] to target, and shrink the search space by half each time.",
+    "Watch your loop condition and midpoint calculation to avoid infinite loops or off-by-one errors."
+  ]
+}

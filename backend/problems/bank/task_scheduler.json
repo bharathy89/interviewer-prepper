@@ -1,0 +1,28 @@
+{
+  "id": "task_scheduler",
+  "title": "Task Scheduler with Cooldown",
+  "difficulty": "Medium",
+  "topics": ["greedy", "heap"],
+  "companies": ["NVIDIA", "Databricks", "xAI"],
+  "prompt": "You are given a list of tasks (as characters) and a cooldown period `n`: the same task type must be separated by at least `n` other tasks (or idle slots) — analogous to scheduling the same GPU job type with a mandatory cooldown between runs. Return the minimum number of time units needed to finish all tasks.",
+  "constraints": [
+    "1 <= len(tasks) <= 10^4",
+    "0 <= n <= 100"
+  ],
+  "function_name": "least_interval",
+  "starter_code": "from typing import List\n\n\ndef least_interval(tasks: List[str], n: int) -> int:\n    pass\n",
+  "examples": [
+    {"input": "tasks = ['A','A','A','B','B','B'], n = 2", "output": "8"},
+    {"input": "tasks = ['A','A','A','B','B','B'], n = 0", "output": "6"}
+  ],
+  "test_cases": [
+    {"args": [["A", "A", "A", "B", "B", "B"], 2], "expected": 8},
+    {"args": [["A", "A", "A", "B", "B", "B"], 0], "expected": 6},
+    {"args": [["A", "A", "A", "A"], 3], "expected": 13}
+  ],
+  "hints": [
+    "The most frequent task type is the bottleneck — think about scheduling its occurrences with the cooldown, then filling gaps with everything else.",
+    "If the most frequent count is max_count, it creates (max_count - 1) full cooldown blocks of size (n+1), plus however many tasks tie for that max count at the very end.",
+    "Compare that formula's result to len(tasks) — you can never do better than one task per time unit even if there's no idle time needed."
+  ]
+}

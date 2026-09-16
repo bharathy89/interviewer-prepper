@@ -1,0 +1,28 @@
+{
+  "id": "contains_duplicate",
+  "title": "Contains Duplicate",
+  "difficulty": "Easy",
+  "topics": ["array", "hash set"],
+  "companies": ["Amazon", "Apple"],
+  "prompt": "Given an integer array `nums`, return `True` if any value appears at least twice, and `False` if every element is distinct.",
+  "constraints": [
+    "1 <= len(nums) <= 10^5"
+  ],
+  "function_name": "contains_duplicate",
+  "starter_code": "from typing import List\n\n\ndef contains_duplicate(nums: List[int]) -> bool:\n    pass\n",
+  "examples": [
+    {"input": "nums = [1,2,3,1]", "output": "True"},
+    {"input": "nums = [1,2,3,4]", "output": "False"}
+  ],
+  "test_cases": [
+    {"args": [[1, 2, 3, 1]], "expected": true},
+    {"args": [[1, 2, 3, 4]], "expected": false},
+    {"args": [[1, 1, 1, 3, 3, 4, 3, 2, 4, 2]], "expected": true},
+    {"args": [[7]], "expected": false}
+  ],
+  "hints": [
+    "A hash set lets you check membership in O(1) as you scan once.",
+    "Add each number to a set; if a number is already in the set, you've found a duplicate.",
+    "Alternatively, compare len(set(nums)) to len(nums), though that's less useful to discuss for early exit."
+  ]
+}

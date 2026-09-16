@@ -1,0 +1,19 @@
+{
+  "id": "ml_feature_store",
+  "title": "Design an ML Feature Store",
+  "difficulty": "Medium",
+  "companies": ["Databricks", "Meta", "NVIDIA"],
+  "prompt": "Design a feature store that lets ML teams define features once and use them consistently for both offline model training (large batch reads over historical data) and online inference (single-entity lookups with very low latency).",
+  "requirements": [
+    "Functional: register a feature definition, compute/materialize feature values, serve them for batch training jobs and for real-time inference lookups",
+    "Non-functional: online lookups need single-digit-millisecond latency; offline training needs to efficiently read large historical windows; training and serving must use the same feature values to avoid skew"
+  ],
+  "discussion_points": [
+    "Separate storage paths for the online store (low-latency point lookups) vs. the offline store (large batch scans), and how they stay consistent",
+    "Point-in-time correctness for training data — avoiding leaking future information into a feature value used for a past training example",
+    "Feature computation: batch/streaming pipelines that keep the online store fresh",
+    "Training/serving skew: what causes it here and how the design prevents it",
+    "How a new feature gets backfilled over historical data without disrupting live serving",
+    "Multi-tenancy: many teams sharing the feature store without stepping on each other's compute or feature namespaces"
+  ]
+}

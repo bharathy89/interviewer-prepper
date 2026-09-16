@@ -1,0 +1,18 @@
+{
+  "id": "news_feed",
+  "title": "Design a News Feed",
+  "difficulty": "Hard",
+  "companies": ["Meta", "Google"],
+  "prompt": "Design a news feed system like Facebook or Twitter's timeline: users follow other users, and see a feed of recent posts from the people they follow, roughly ordered by recency.",
+  "requirements": [
+    "Functional: create a post, follow/unfollow, fetch a personalized feed of recent posts from followed users",
+    "Non-functional: some users follow only a handful of people, some celebrities have tens of millions of followers; feed reads should be fast even under that skew"
+  ],
+  "discussion_points": [
+    "Fan-out on write (push to every follower's feed) vs fan-out on read (compute the feed at request time) vs a hybrid",
+    "How the hybrid approach handles the celebrity/hot-user case specifically",
+    "Storage for the feed itself vs the underlying posts",
+    "Pagination and how new posts get merged in without breaking a user's scroll position",
+    "Where ranking (not just chronological order) would fit into this architecture"
+  ]
+}

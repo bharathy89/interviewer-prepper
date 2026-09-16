@@ -1,0 +1,30 @@
+{
+  "id": "jump_game",
+  "title": "Jump Game",
+  "difficulty": "Medium",
+  "topics": ["array", "greedy"],
+  "companies": ["Amazon", "Microsoft"],
+  "prompt": "You are given an array `nums` where `nums[i]` is the maximum jump length from index `i`. Starting at index 0, return `True` if you can reach the last index, otherwise `False`.",
+  "constraints": [
+    "1 <= len(nums) <= 10^4",
+    "0 <= nums[i] <= 10^5"
+  ],
+  "function_name": "can_jump",
+  "starter_code": "from typing import List\n\n\ndef can_jump(nums: List[int]) -> bool:\n    pass\n",
+  "examples": [
+    {"input": "nums = [2,3,1,1,4]", "output": "True"},
+    {"input": "nums = [3,2,1,0,4]", "output": "False"}
+  ],
+  "test_cases": [
+    {"args": [[2, 3, 1, 1, 4]], "expected": true},
+    {"args": [[3, 2, 1, 0, 4]], "expected": false},
+    {"args": [[0]], "expected": true},
+    {"args": [[2, 0, 0]], "expected": true},
+    {"args": [[1, 0, 1, 0]], "expected": false}
+  ],
+  "hints": [
+    "Greedy works here — track the farthest index you can reach so far as you scan left to right.",
+    "If your current index ever exceeds the farthest reachable index, you're stuck.",
+    "You don't need to try every path — just keep extending the reachable frontier."
+  ]
+}

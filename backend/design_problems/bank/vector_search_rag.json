@@ -1,0 +1,19 @@
+{
+  "id": "vector_search_rag",
+  "title": "Design a Vector Search System for RAG",
+  "difficulty": "Medium",
+  "companies": ["OpenAI", "Anthropic", "Databricks", "Mistral AI"],
+  "prompt": "Design a vector search system that supports retrieval-augmented generation (RAG): given a query embedding, return the most similar document chunks from a large, continuously growing corpus, fast enough to sit in the critical path of an LLM request.",
+  "requirements": [
+    "Functional: ingest and embed new documents (chunked), support approximate nearest-neighbor search over embeddings, return top-k results with metadata",
+    "Non-functional: corpus in the hundreds of millions of vectors, query latency low enough to not dominate end-to-end LLM response time, index must support ongoing writes without full rebuilds"
+  ],
+  "discussion_points": [
+    "Approximate nearest-neighbor index choice (e.g. HNSW, IVF) and the recall/latency/memory tradeoffs between them",
+    "Sharding the index across machines as the corpus grows, and how a query fans out and merges results",
+    "Handling continuous ingestion of new documents without stalling queries or requiring full re-indexing",
+    "Filtering by metadata (e.g. only search a specific user's documents) alongside the vector similarity search",
+    "Freshness vs. cost tradeoff: how quickly a newly ingested document becomes searchable",
+    "How this component fits into the overall RAG request path and what happens if it's slow or down"
+  ]
+}

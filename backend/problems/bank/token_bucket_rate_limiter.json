@@ -1,0 +1,26 @@
+{
+  "id": "token_bucket_rate_limiter",
+  "title": "Token Bucket Rate Limiter",
+  "difficulty": "Medium",
+  "topics": ["design", "rate limiting"],
+  "companies": ["OpenAI", "Anthropic", "Scale AI", "xAI"],
+  "prompt": "Implement a `TokenBucket` rate limiter for throttling API/inference requests. `TokenBucket(capacity, refill_rate)` creates a bucket holding up to `capacity` tokens that refills at `refill_rate` tokens per second. `allow_request(timestamp, tokens=1)` returns `True` and consumes `tokens` if enough are available at that timestamp (refilling first based on elapsed time), otherwise returns `False` and consumes nothing.",
+  "constraints": [
+    "capacity and refill_rate are positive numbers",
+    "timestamps passed to allow_request are non-decreasing (calls arrive in time order)",
+    "The bucket never holds more than capacity tokens"
+  ],
+  "function_name": "TokenBucket",
+  "starter_code": "class TokenBucket:\n    def __init__(self, capacity: float, refill_rate: float):\n        pass\n\n    def allow_request(self, timestamp: float, tokens: float = 1) -> bool:\n        pass\n",
+  "examples": [
+    {"input": "bucket = TokenBucket(capacity=10, refill_rate=1); allow_request(t=0, tokens=10) then allow_request(t=0, tokens=1)", "output": "True, then False (bucket just emptied)"}
+  ],
+  "test_cases": [
+    {"args": [], "expected": "see prompt — sequence of timed calls, not a single call"}
+  ],
+  "hints": [
+    "Track the current token count and the last-refill timestamp as state.",
+    "On each call, first compute elapsed = timestamp - last_refill_time, add elapsed * refill_rate tokens (capped at capacity), then update last_refill_time.",
+    "Only after refilling do you check whether enough tokens are available to satisfy the request."
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "id": "data_labeling_platform",
+  "title": "Design a Data Labeling Platform",
+  "difficulty": "Medium",
+  "companies": ["Scale AI", "Databricks", "Google DeepMind"],
+  "prompt": "Design a platform that distributes labeling tasks (e.g. image annotation, RLHF preference comparisons) to a large pool of human labelers, collects their responses, and produces a quality-controlled labeled dataset for model training.",
+  "requirements": [
+    "Functional: assign tasks to available labelers, collect and store responses, support multiple labelers per task for quality/agreement checks, export a finished labeled dataset",
+    "Non-functional: tens of thousands of labelers working concurrently, tasks should not be assigned to the same labeler twice, low-quality labelers should be identifiable"
+  ],
+  "discussion_points": [
+    "Task assignment/queueing so labelers aren't idle and tasks aren't double-assigned under concurrency",
+    "Quality control: redundant labeling, agreement scoring, and flagging or downweighting unreliable labelers",
+    "Data model for tasks, assignments, responses, and the final aggregated label",
+    "Handling labelers who abandon a task mid-way (timeouts, reassignment)",
+    "Scaling task throughput as both the labeler pool and task volume grow",
+    "How the platform would support a fundamentally different task type (e.g. free-text RLHF ranking vs. bounding boxes) without a rewrite"
+  ]
+}

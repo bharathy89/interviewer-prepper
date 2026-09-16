@@ -1,0 +1,29 @@
+{
+  "id": "product_except_self",
+  "title": "Product of Array Except Self",
+  "difficulty": "Medium",
+  "topics": ["array", "prefix sum"],
+  "companies": ["Amazon", "Meta", "Microsoft"],
+  "prompt": "Given an integer array `nums`, return an array `answer` where `answer[i]` is the product of all elements of `nums` except `nums[i]`. You must write an algorithm that runs in O(n) time without using division.",
+  "constraints": [
+    "2 <= len(nums) <= 10^5",
+    "The product of any prefix or suffix fits in a 32-bit integer."
+  ],
+  "function_name": "product_except_self",
+  "starter_code": "from typing import List\n\n\ndef product_except_self(nums: List[int]) -> List[int]:\n    pass\n",
+  "examples": [
+    {"input": "nums = [1,2,3,4]", "output": "[24,12,8,6]"},
+    {"input": "nums = [-1,1,0,-3,3]", "output": "[0,0,9,0,0]"}
+  ],
+  "test_cases": [
+    {"args": [[1, 2, 3, 4]], "expected": [24, 12, 8, 6]},
+    {"args": [[-1, 1, 0, -3, 3]], "expected": [0, 0, 9, 0, 0]},
+    {"args": [[2, 3]], "expected": [3, 2]},
+    {"args": [[1, 1, 1, 1]], "expected": [1, 1, 1, 1]}
+  ],
+  "hints": [
+    "Since you can't use division, think about prefix and suffix products.",
+    "Build an array of prefix products (product of everything to the left of i).",
+    "Then sweep from the right multiplying in a running suffix product to combine with each prefix."
+  ]
+}

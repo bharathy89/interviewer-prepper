@@ -1,0 +1,32 @@
+{
+  "id": "longest_unique_substring",
+  "title": "Longest Substring Without Repeating Characters",
+  "difficulty": "Medium",
+  "topics": ["string", "sliding window", "hash map"],
+  "companies": ["Meta", "Amazon", "Netflix"],
+  "prompt": "Given a string `s`, find the length of the longest substring without repeating characters.",
+  "constraints": [
+    "0 <= len(s) <= 5 * 10^4",
+    "s consists of English letters, digits, symbols, and spaces."
+  ],
+  "function_name": "length_of_longest_substring",
+  "starter_code": "def length_of_longest_substring(s: str) -> int:\n    pass\n",
+  "examples": [
+    {"input": "s = \"abcabcbb\"", "output": "3"},
+    {"input": "s = \"bbbbb\"", "output": "1"},
+    {"input": "s = \"pwwkew\"", "output": "3"}
+  ],
+  "test_cases": [
+    {"args": ["abcabcbb"], "expected": 3},
+    {"args": ["bbbbb"], "expected": 1},
+    {"args": ["pwwkew"], "expected": 3},
+    {"args": [""], "expected": 0},
+    {"args": [" "], "expected": 1},
+    {"args": ["dvdf"], "expected": 3}
+  ],
+  "hints": [
+    "A brute-force check of every substring is O(n^2) or worse — think sliding window.",
+    "Keep a window [left, right] and a hash map of the last index each character was seen at.",
+    "When you see a repeat inside the current window, jump `left` to just past the previous occurrence."
+  ]
+}

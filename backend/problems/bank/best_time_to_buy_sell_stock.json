@@ -1,0 +1,30 @@
+{
+  "id": "best_time_to_buy_sell_stock",
+  "title": "Best Time to Buy and Sell Stock",
+  "difficulty": "Easy",
+  "topics": ["array", "greedy"],
+  "companies": ["Amazon", "Meta", "Microsoft"],
+  "prompt": "You are given an array `prices` where `prices[i]` is the price of a stock on day `i`. You want to maximize profit by choosing a single day to buy and a different later day to sell. Return the maximum profit, or 0 if no profit is possible.",
+  "constraints": [
+    "1 <= len(prices) <= 10^5",
+    "You must buy before you sell."
+  ],
+  "function_name": "max_profit",
+  "starter_code": "from typing import List\n\n\ndef max_profit(prices: List[int]) -> int:\n    pass\n",
+  "examples": [
+    {"input": "prices = [7,1,5,3,6,4]", "output": "5"},
+    {"input": "prices = [7,6,4,3,1]", "output": "0"}
+  ],
+  "test_cases": [
+    {"args": [[7, 1, 5, 3, 6, 4]], "expected": 5},
+    {"args": [[7, 6, 4, 3, 1]], "expected": 0},
+    {"args": [[2, 4, 1]], "expected": 2},
+    {"args": [[1, 2]], "expected": 1},
+    {"args": [[3, 3, 3]], "expected": 0}
+  ],
+  "hints": [
+    "You only need one pass — track the minimum price seen so far.",
+    "At each day, the best possible profit if you sold today is price - min_so_far.",
+    "Keep a running max of that profit as you scan once through the array."
+  ]
+}

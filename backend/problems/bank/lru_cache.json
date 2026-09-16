@@ -1,0 +1,26 @@
+{
+  "id": "lru_cache",
+  "title": "LRU Cache",
+  "difficulty": "Medium",
+  "topics": ["design", "hash map", "linked list"],
+  "companies": ["NVIDIA", "OpenAI", "Databricks", "Meta"],
+  "prompt": "Design a Least Recently Used (LRU) cache. Implement the `LRUCache` class with a fixed `capacity`: `get(key)` returns the value if present (and marks it as recently used) or -1 if not; `put(key, value)` inserts or updates a value, evicting the least recently used entry if the cache is at capacity. Both operations should run in O(1) average time — directly relevant to KV-cache / model-artifact eviction in inference serving.",
+  "constraints": [
+    "1 <= capacity <= 3000",
+    "get and put must both run in O(1) average time"
+  ],
+  "function_name": "LRUCache",
+  "starter_code": "class LRUCache:\n    def __init__(self, capacity: int):\n        pass\n\n    def get(self, key: int) -> int:\n        pass\n\n    def put(self, key: int, value: int) -> None:\n        pass\n",
+  "examples": [
+    {"input": "cache = LRUCache(2); cache.put(1,1); cache.put(2,2); cache.get(1); cache.put(3,3); cache.get(2)", "output": "1, then -1 (2 was evicted)"}
+  ],
+  "test_cases": [
+    {"args": [], "expected": "see prompt — sequence of operations, not a single call"}
+  ],
+  "hints": [
+    "O(1) get/put suggests a hash map from key to node, plus a doubly linked list to track recency order.",
+    "On get, move the accessed node to the front (most recently used) end of the list.",
+    "On put at capacity, evict the node at the back (least recently used) end before inserting the new one.",
+    "Python's collections.OrderedDict gives you move_to_end and popitem(last=False) for free, if you'd rather not hand-roll the linked list."
+  ]
+}

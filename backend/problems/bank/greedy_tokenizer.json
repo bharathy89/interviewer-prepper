@@ -1,0 +1,29 @@
+{
+  "id": "greedy_tokenizer",
+  "title": "Greedy Longest-Match Tokenizer",
+  "difficulty": "Medium",
+  "topics": ["string", "hash set", "greedy"],
+  "companies": ["OpenAI", "Anthropic", "Mistral AI"],
+  "prompt": "Given a `vocabulary` (a set of known tokens) and a `text` string with no spaces, tokenize `text` by always greedily matching the longest possible vocabulary token starting at the current position. If no vocabulary token matches at some position, treat that single character as its own token. Return the list of tokens produced, in order.",
+  "constraints": [
+    "1 <= len(text) <= 10^4",
+    "1 <= len(vocabulary) <= 10^4",
+    "Every vocabulary token is a non-empty string"
+  ],
+  "function_name": "tokenize",
+  "starter_code": "from typing import List\n\n\ndef tokenize(text: str, vocabulary: List[str]) -> List[str]:\n    pass\n",
+  "examples": [
+    {"input": "text = \"lowestlow\", vocabulary = [\"low\",\"est\",\"lowest\",\"e\",\"s\",\"t\"]", "output": "[\"lowest\", \"low\"]"},
+    {"input": "text = \"abc\", vocabulary = [\"a\",\"b\"]", "output": "[\"a\", \"b\", \"c\"]"}
+  ],
+  "test_cases": [
+    {"args": ["lowestlow", ["low", "est", "lowest", "e", "s", "t"]], "expected": ["lowest", "low"]},
+    {"args": ["abc", ["a", "b"]], "expected": ["a", "b", "c"]},
+    {"args": ["aaa", ["aa"]], "expected": ["aa", "a"]}
+  ],
+  "hints": [
+    "At each position, you need to know the longest vocabulary token starting there — checking every possible substring naively is expensive.",
+    "Precompute the max vocabulary token length once, then at each position only try substrings from that max length down to 1, stopping at the first hit.",
+    "A hash set for the vocabulary makes each substring check O(1), so the whole scan is O(len(text) * max_token_length)."
+  ]
+}

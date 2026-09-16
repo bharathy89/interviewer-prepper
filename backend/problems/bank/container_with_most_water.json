@@ -1,0 +1,28 @@
+{
+  "id": "container_with_most_water",
+  "title": "Container With Most Water",
+  "difficulty": "Medium",
+  "topics": ["array", "two pointers"],
+  "companies": ["Google", "Amazon", "Meta"],
+  "prompt": "You are given an integer array `height` where `height[i]` is the height of a vertical line at position `i`. Find two lines that, together with the x-axis, form a container that holds the most water. Return the maximum area.",
+  "constraints": [
+    "2 <= len(height) <= 10^5"
+  ],
+  "function_name": "max_area",
+  "starter_code": "from typing import List\n\n\ndef max_area(height: List[int]) -> int:\n    pass\n",
+  "examples": [
+    {"input": "height = [1,8,6,2,5,4,8,3,7]", "output": "49"},
+    {"input": "height = [1,1]", "output": "1"}
+  ],
+  "test_cases": [
+    {"args": [[1, 8, 6, 2, 5, 4, 8, 3, 7]], "expected": 49},
+    {"args": [[1, 1]], "expected": 1},
+    {"args": [[4, 3, 2, 1, 4]], "expected": 16},
+    {"args": [[1, 2, 1]], "expected": 2}
+  ],
+  "hints": [
+    "A brute-force check of every pair is O(n^2) — think about a two-pointer approach from both ends.",
+    "The area is limited by the shorter of the two lines, so moving the taller pointer inward can never help.",
+    "Always move the pointer at the shorter line inward, tracking the max area seen as you go."
+  ]
+}

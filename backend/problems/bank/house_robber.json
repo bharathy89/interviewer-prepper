@@ -1,0 +1,30 @@
+{
+  "id": "house_robber",
+  "title": "House Robber",
+  "difficulty": "Medium",
+  "topics": ["dynamic programming"],
+  "companies": ["Amazon", "Google", "Apple"],
+  "prompt": "You are a robber planning to rob houses along a street, represented by an array `nums` where `nums[i]` is the money in house `i`. You cannot rob two adjacent houses (it triggers an alarm). Return the maximum amount you can rob.",
+  "constraints": [
+    "1 <= len(nums) <= 100",
+    "0 <= nums[i] <= 1000"
+  ],
+  "function_name": "rob",
+  "starter_code": "from typing import List\n\n\ndef rob(nums: List[int]) -> int:\n    pass\n",
+  "examples": [
+    {"input": "nums = [1,2,3,1]", "output": "4"},
+    {"input": "nums = [2,7,9,3,1]", "output": "12"}
+  ],
+  "test_cases": [
+    {"args": [[1, 2, 3, 1]], "expected": 4},
+    {"args": [[2, 7, 9, 3, 1]], "expected": 12},
+    {"args": [[5]], "expected": 5},
+    {"args": [[2, 1]], "expected": 2},
+    {"args": [[0, 0, 0]], "expected": 0}
+  ],
+  "hints": [
+    "At each house, you either rob it (skip the previous one) or skip it and keep the best total so far.",
+    "Track two running values: best total if you stop before the previous house, and best total including it.",
+    "This can be done in O(1) space without an explicit DP array."
+  ]
+}

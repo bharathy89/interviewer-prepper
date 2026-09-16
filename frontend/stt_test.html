@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>STT Test Harness</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px 0; }
+  .subtitle { color: #9a9a9a; margin: 0 0 20px 0; font-size: 13px; }
+  #mic-btn {
+    background: #3c3c3c;
+    color: #d4d4d4;
+    border: none;
+    border-radius: 16px;
+    padding: 8px 18px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  #mic-btn.active { background: #c0392b; color: white; }
+  #level-bar-track {
+    display: inline-block;
+    width: 200px;
+    height: 10px;
+    background: #333;
+    border-radius: 5px;
+    margin-left: 14px;
+    vertical-align: middle;
+    overflow: hidden;
+  }
+  #level-bar {
+    height: 100%;
+    width: 0%;
+    background: #4caf50;
+  }
+  #log {
+    margin-top: 20px;
+    border-top: 1px solid #3c3c3c;
+    padding-top: 16px;
+  }
+  .entry {
+    background: #2d2d2d;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    font-size: 13.5px;
+  }
+  .entry .meta {
+    color: #9a9a9a;
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .entry.empty { color: #9a9a9a; font-style: italic; }
+  #partial-preview {
+    margin-top: 16px;
+    min-height: 20px;
+    font-size: 13.5px;
+    color: #7fb3ff;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<h1>STT Test Harness</h1>
+<p class="subtitle">Isolated mic → VAD → Whisper test, independent of the interview app.</p>
+
+<button id="mic-btn">🎤 Mic off</button>
+<span id="level-bar-track"><span id="level-bar"></span></span>
+<span id="status" style="margin-left: 12px; color: #9a9a9a; font-size: 12.5px;"></span>
+
+<div id="partial-preview"></div>
+<div id="log"></div>
+
+<script src="stt_test.js"></script>
+</body>
+</html>

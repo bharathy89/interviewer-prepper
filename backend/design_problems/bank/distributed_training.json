@@ -1,0 +1,19 @@
+{
+  "id": "distributed_training",
+  "title": "Design a Distributed Model Training System",
+  "difficulty": "Hard",
+  "companies": ["OpenAI", "Google DeepMind", "NVIDIA", "xAI"],
+  "prompt": "Design a system for training a large neural network across hundreds or thousands of GPUs spanning many machines, that can recover cleanly from individual node/GPU failures during a multi-week training run.",
+  "requirements": [
+    "Functional: distribute a training job across many GPUs/nodes, checkpoint progress periodically, resume from a checkpoint after a failure",
+    "Non-functional: training runs for weeks, so failures are expected and must not lose more than a small amount of progress; should scale near-linearly with more GPUs up to a point"
+  ],
+  "discussion_points": [
+    "Parallelism strategy: data parallelism vs. model/tensor parallelism vs. pipeline parallelism, and when each is needed",
+    "Gradient synchronization across nodes (all-reduce) and the network bandwidth it demands",
+    "Checkpointing strategy: how often, where checkpoints are stored, and how large they can get for a big model",
+    "Failure detection and recovery: what happens to an in-flight training step when one GPU dies mid-batch",
+    "Straggler nodes slowing down synchronous training, and options for mitigating that",
+    "How this differs for fine-tuning a smaller model vs. pretraining a frontier-scale one"
+  ]
+}

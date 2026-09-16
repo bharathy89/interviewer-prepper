@@ -1,0 +1,30 @@
+{
+  "id": "merge_intervals",
+  "title": "Merge Intervals",
+  "difficulty": "Medium",
+  "topics": ["array", "sorting"],
+  "companies": ["Meta", "Amazon", "Microsoft"],
+  "prompt": "Given an array of intervals where `intervals[i] = [start_i, end_i]`, merge all overlapping intervals and return an array of the non-overlapping intervals that cover all the intervals in the input.",
+  "constraints": [
+    "1 <= len(intervals) <= 10^4",
+    "Each interval is [start, end] with start <= end."
+  ],
+  "function_name": "merge",
+  "starter_code": "from typing import List\n\n\ndef merge(intervals: List[List[int]]) -> List[List[int]]:\n    pass\n",
+  "examples": [
+    {"input": "intervals = [[1,3],[2,6],[8,10],[15,18]]", "output": "[[1,6],[8,10],[15,18]]"},
+    {"input": "intervals = [[1,4],[4,5]]", "output": "[[1,5]]"}
+  ],
+  "test_cases": [
+    {"args": [[[1, 3], [2, 6], [8, 10], [15, 18]]], "expected": [[1, 6], [8, 10], [15, 18]]},
+    {"args": [[[1, 4], [4, 5]]], "expected": [[1, 5]]},
+    {"args": [[[1, 4]]], "expected": [[1, 4]]},
+    {"args": [[[1, 4], [2, 3]]], "expected": [[1, 4]]},
+    {"args": [[[1, 4], [5, 6]]], "expected": [[1, 4], [5, 6]]}
+  ],
+  "hints": [
+    "Sorting the intervals by start time first makes overlaps easy to detect in one pass.",
+    "Walk through the sorted intervals, and merge into the last interval in your result if the current one overlaps it.",
+    "Two intervals overlap when the next interval's start is <= the current merged interval's end."
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "subsets",
+  "title": "Subsets",
+  "difficulty": "Medium",
+  "topics": ["backtracking", "recursion"],
+  "companies": ["Meta", "Amazon", "Microsoft"],
+  "prompt": "Given an integer array `nums` of unique elements, return all possible subsets (the power set). The solution set must not contain duplicate subsets; you may return the subsets in any order.",
+  "constraints": [
+    "1 <= len(nums) <= 10",
+    "All elements of nums are unique."
+  ],
+  "function_name": "subsets",
+  "starter_code": "from typing import List\n\n\ndef subsets(nums: List[int]) -> List[List[int]]:\n    pass\n",
+  "examples": [
+    {"input": "nums = [1,2,3]", "output": "[[],[1],[2],[1,2],[3],[1,3],[2,3],[1,2,3]]"},
+    {"input": "nums = [0]", "output": "[[],[0]]"}
+  ],
+  "test_cases": [
+    {"args": [[1, 2, 3]], "expected": [[], [1], [2], [1, 2], [3], [1, 3], [2, 3], [1, 2, 3]]},
+    {"args": [[0]], "expected": [[], [0]]}
+  ],
+  "hints": [
+    "Think recursively: for each element, you either include it in the current subset or you don't.",
+    "A backtracking template works well: build up a path, recurse on the rest of the array, then undo the choice.",
+    "There's also an iterative approach: start with [[]] and for each number, add it to every existing subset to double the list."
+  ]
+}

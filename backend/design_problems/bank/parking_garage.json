@@ -1,0 +1,18 @@
+{
+  "id": "parking_garage",
+  "title": "Design a Parking Garage System",
+  "difficulty": "Easy",
+  "companies": ["Microsoft", "Apple"],
+  "prompt": "Design a parking garage system that tracks available spots across multiple levels, assigns a spot to an arriving vehicle (with different spot sizes for motorcycles/cars/buses), and frees the spot when the vehicle leaves.",
+  "requirements": [
+    "Functional: check in a vehicle (assign an appropriate spot), check out a vehicle (free its spot), query available spot counts by type",
+    "Non-functional: fast spot lookup even with thousands of spots, correct behavior with concurrent check-ins from multiple entrances"
+  ],
+  "discussion_points": [
+    "Data model for levels, spots, and spot sizes/types",
+    "Assignment strategy (nearest available, by type) and how to keep lookups fast",
+    "Concurrency: two vehicles arriving at the same time shouldn't be assigned the same spot",
+    "This is a smaller-scale problem — is a single-service, single-database design good enough, and why?",
+    "How you'd extend this to multiple garages/locations"
+  ]
+}

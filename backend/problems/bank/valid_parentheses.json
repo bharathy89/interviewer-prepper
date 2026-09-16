@@ -1,0 +1,33 @@
+{
+  "id": "valid_parentheses",
+  "title": "Valid Parentheses",
+  "difficulty": "Easy",
+  "topics": ["stack", "string"],
+  "companies": ["Amazon", "Microsoft", "Google"],
+  "prompt": "Given a string `s` containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid. A string is valid if brackets are closed by the same type of bracket and in the correct order.",
+  "constraints": [
+    "1 <= len(s) <= 10^4",
+    "s consists only of bracket characters '()[]{}'."
+  ],
+  "function_name": "is_valid",
+  "starter_code": "def is_valid(s: str) -> bool:\n    pass\n",
+  "examples": [
+    {"input": "s = \"()\"", "output": "True"},
+    {"input": "s = \"()[]{}\"", "output": "True"},
+    {"input": "s = \"(]\"", "output": "False"}
+  ],
+  "test_cases": [
+    {"args": ["()"], "expected": true},
+    {"args": ["()[]{}"], "expected": true},
+    {"args": ["(]"], "expected": false},
+    {"args": ["([)]"], "expected": false},
+    {"args": ["{[]}"], "expected": true},
+    {"args": [""], "expected": true},
+    {"args": ["("], "expected": false}
+  ],
+  "hints": [
+    "A stack is a natural fit here — think about what needs to happen when you see a closing bracket.",
+    "Push opening brackets onto a stack; on a closing bracket, check if it matches the top of the stack.",
+    "Don't forget to check the stack is empty at the very end."
+  ]
+}

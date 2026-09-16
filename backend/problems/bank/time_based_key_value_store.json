@@ -1,0 +1,25 @@
+{
+  "id": "time_based_key_value_store",
+  "title": "Time-Based Key-Value Store",
+  "difficulty": "Medium",
+  "topics": ["design", "binary search", "hash map"],
+  "companies": ["Databricks", "Scale AI", "Meta"],
+  "prompt": "Design a time-based key-value store — think a versioned config or model-registry store. `set(key, value, timestamp)` stores the value at that timestamp. `get(key, timestamp)` returns the value set at the largest recorded timestamp <= the given timestamp, or an empty string if none exists.",
+  "constraints": [
+    "Timestamps passed to set() for the same key are strictly increasing",
+    "Up to 10^5 total set/get calls"
+  ],
+  "function_name": "TimeMap",
+  "starter_code": "class TimeMap:\n    def __init__(self):\n        pass\n\n    def set(self, key: str, value: str, timestamp: int) -> None:\n        pass\n\n    def get(self, key: str, timestamp: int) -> str:\n        pass\n",
+  "examples": [
+    {"input": "set('a','v1',1); get('a',1); get('a',3); set('a','v2',4); get('a',4); get('a',5)", "output": "'v1', 'v1', 'v2', 'v2'"}
+  ],
+  "test_cases": [
+    {"args": [], "expected": "see prompt — sequence of set/get calls, not a single call"}
+  ],
+  "hints": [
+    "Store, per key, a list of (timestamp, value) pairs — since timestamps are strictly increasing per key, this list is already sorted.",
+    "get() then becomes a binary search for the largest timestamp <= the query timestamp within that key's list.",
+    "Python's bisect module (bisect_right on the timestamps) gets you this in O(log n) without hand-rolling binary search."
+  ]
+}

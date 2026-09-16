@@ -1,0 +1,30 @@
+{
+  "id": "two_sum",
+  "title": "Two Sum",
+  "difficulty": "Easy",
+  "topics": ["array", "hash map"],
+  "companies": ["Google", "Amazon", "Meta"],
+  "prompt": "Given an array of integers `nums` and an integer `target`, return the indices of the two numbers such that they add up to `target`.",
+  "constraints": [
+    "Each input has exactly one solution.",
+    "You may not use the same element twice.",
+    "You can return the answer in any order."
+  ],
+  "function_name": "two_sum",
+  "starter_code": "from typing import List\n\n\ndef two_sum(nums: List[int], target: int) -> List[int]:\n    pass\n",
+  "examples": [
+    {"input": "nums = [2, 7, 11, 15], target = 9", "output": "[0, 1]"},
+    {"input": "nums = [3, 2, 4], target = 6", "output": "[1, 2]"}
+  ],
+  "test_cases": [
+    {"args": [[2, 7, 11, 15], 9], "expected": [0, 1]},
+    {"args": [[3, 2, 4], 6], "expected": [1, 2]},
+    {"args": [[3, 3], 6], "expected": [0, 1]},
+    {"args": [[-1, -2, -3, -4, -5], -8], "expected": [2, 4]}
+  ],
+  "hints": [
+    "Brute force checks every pair — can you avoid the nested loop?",
+    "Consider a hash map from value seen so far to its index.",
+    "For each number, check if `target - num` is already in the map before inserting the current number."
+  ]
+}

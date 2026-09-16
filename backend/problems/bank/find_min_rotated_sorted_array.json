@@ -1,0 +1,29 @@
+{
+  "id": "find_min_rotated_sorted_array",
+  "title": "Find Minimum in Rotated Sorted Array",
+  "difficulty": "Medium",
+  "topics": ["binary search", "array"],
+  "companies": ["Google", "Amazon", "Microsoft"],
+  "prompt": "Suppose an array of unique integers, sorted in ascending order, is rotated at some unknown pivot. Given the rotated array `nums`, return the minimum element. Your algorithm must run in O(log n) time.",
+  "constraints": [
+    "1 <= len(nums) <= 5000",
+    "All integers in nums are unique."
+  ],
+  "function_name": "find_min",
+  "starter_code": "from typing import List\n\n\ndef find_min(nums: List[int]) -> int:\n    pass\n",
+  "examples": [
+    {"input": "nums = [3,4,5,1,2]", "output": "1"},
+    {"input": "nums = [4,5,6,7,0,1,2]", "output": "0"}
+  ],
+  "test_cases": [
+    {"args": [[3, 4, 5, 1, 2]], "expected": 1},
+    {"args": [[4, 5, 6, 7, 0, 1, 2]], "expected": 0},
+    {"args": [[11, 13, 15, 17]], "expected": 11},
+    {"args": [[2, 1]], "expected": 1}
+  ],
+  "hints": [
+    "Binary search still applies here — compare the middle element to the rightmost element.",
+    "If nums[mid] > nums[right], the minimum must be in the right half; otherwise it's in the left half (including mid).",
+    "Narrow the search space by one of those rules each iteration until low == high."
+  ]
+}

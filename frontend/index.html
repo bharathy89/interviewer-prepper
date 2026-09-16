@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Interviewer Prepper</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="gate-screen" class="screen hidden">
+  <div class="start-card">
+    <h1>Interviewer Prepper</h1>
+    <p class="subtitle">Enter the passphrase to continue.</p>
+    <label for="passphrase-input">Passphrase</label>
+    <input type="password" id="passphrase-input" placeholder="Passphrase" />
+    <button id="gate-submit-btn">Enter</button>
+    <p id="gate-error" class="error"></p>
+  </div>
+</div>
+
+<div id="start-screen" class="screen hidden">
+  <div class="start-card">
+    <h1>Interviewer Prepper</h1>
+    <p class="subtitle">Practice a live coding or system design interview.</p>
+
+    <label>Interview type</label>
+    <div id="interview-type-toggle">
+      <button id="type-coding-btn" class="type-btn active" data-type="coding">Coding</button>
+      <button id="type-design-btn" class="type-btn" data-type="system_design">System Design</button>
+    </div>
+
+    <label for="company-select">Company style</label>
+    <select id="company-select">
+      <option value="">Any / General</option>
+    </select>
+
+    <label for="problem-select">Problem</label>
+    <select id="problem-select">
+      <option value="">Random</option>
+    </select>
+
+    <button id="start-btn">Start Interview</button>
+    <p id="start-error" class="error"></p>
+  </div>
+</div>
+
+<div id="interview-screen" class="screen hidden">
+  <header id="top-bar">
+    <div class="problem-title">
+      <span id="problem-title-text"></span>
+      <span id="difficulty-badge" class="badge"></span>
+      <span id="company-badge" class="badge company-badge"></span>
+    </div>
+    <div id="top-bar-right">
+      <button id="pause-btn" title="Pause the interview (freezes the timer, stops hints, mutes audio)">⏸ Pause</button>
+      <div id="timer">00:00</div>
+    </div>
+  </header>
+
+  <div id="main-layout">
+    <section id="problem-panel">
+      <button id="problem-panel-toggle" class="panel-toggle-btn" title="Collapse">◀</button>
+      <div id="problem-panel-content">
+      <h2 id="problem-heading"></h2>
+      <p id="problem-prompt"></p>
+
+      <div id="coding-problem-info">
+        <h3>Constraints</h3>
+        <ul id="problem-constraints"></ul>
+
+        <h3>Examples</h3>
+        <div id="problem-examples"></div>
+      </div>
+
+      <div id="design-problem-info" class="hidden">
+        <h3>Requirements</h3>
+        <ul id="problem-requirements"></ul>
+
+        <h3>Discussion Points</h3>
+        <ul id="problem-discussion"></ul>
+      </div>
+      </div>
+    </section>
+
+    <section id="editor-panel">
+      <div id="editor-toolbar">
+        <button id="run-btn">Run</button>
+      </div>
+      <div id="editor"></div>
+      <div id="results-panel">
+        <div id="results-summary"></div>
+        <div id="console-output" class="hidden">
+          <h4>Console output</h4>
+          <pre id="console-stdout"></pre>
+          <pre id="console-stderr"></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="canvas-panel" class="hidden">
+      <div id="canvas-toolbar">
+        <button id="review-diagram-btn" title="Ask the interviewer to look at your diagram">Review my diagram</button>
+        <button id="suggest-update-btn" title="Ask the interviewer to add suggested pieces to your diagram (undo with Cmd+Z)">🪄 Suggest update</button>
+      </div>
+      <div id="excalidraw-container"></div>
+    </section>
+
+    <section id="chat-panel">
+      <button id="chat-panel-toggle" class="panel-toggle-btn" title="Collapse">▶</button>
+      <div id="chat-panel-content">
+      <div id="chat-toolbar">
+        <button id="mic-btn" title="Toggle live voice interviewer">🎤 Mic off</button>
+        <button id="silent-mode-btn" title="Silent mode: mutes interviewer audio and disables the mic, for quiet public spaces">🔇 Silent mode</button>
+        <span id="mic-status"></span>
+        <span id="voice-metrics" title="Latest speech-to-text / text-to-speech timing (server processing, then total round-trip including network)"></span>
+      </div>
+      <div id="chat-messages"></div>
+      <div id="chat-input-row">
+        <textarea id="chat-input" placeholder="Ask a clarifying question, explain your approach, or ask for a hint..."></textarea>
+        <button id="chat-send-btn">Send</button>
+      </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+
+<!-- Excalidraw (last version shipping a single-file browser UMD bundle; 0.18+
+     switched to chunked ESM output that requires a bundler). Monaco's loader.js
+     just installed a global AMD `define()`; React/ReactDOM/Excalidraw's UMD
+     wrappers each try to register as an anonymous AMD module when they see one,
+     which RequireJS (Monaco's loader) rejects with "Can only have one anonymous
+     define call per script file" since these are plain <script> tags, not
+     RequireJS-managed modules. Hiding `define` here makes them fall back to
+     their plain-global branch instead; it's restored below for Monaco's own use. -->
+<script>
+  window.__monacoDefine = window.define;
+  window.define = undefined;
+</script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+  window.EXCALIDRAW_ASSET_PATH = "https://unpkg.com/@excalidraw/excalidraw@0.17.6/dist/";
+</script>
+<script src="https://unpkg.com/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"></script>
+<script>
+  window.define = window.__monacoDefine;
+</script>
+
+<script src="canvas.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

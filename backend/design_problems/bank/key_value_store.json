@@ -1,0 +1,18 @@
+{
+  "id": "key_value_store",
+  "title": "Design a Distributed Key-Value Store",
+  "difficulty": "Hard",
+  "companies": ["Amazon", "Google", "Netflix"],
+  "prompt": "Design a distributed key-value store (think DynamoDB/Cassandra style) that supports get(key) and put(key, value) with high availability, and can scale horizontally across many nodes.",
+  "requirements": [
+    "Functional: get/put by key, horizontal scaling by adding nodes",
+    "Non-functional: must stay available during network partitions or node failures, should scale to a very large number of keys and high request volume"
+  ],
+  "discussion_points": [
+    "Partitioning scheme (consistent hashing) and how it handles adding/removing nodes",
+    "Replication strategy and quorum reads/writes (e.g. N/W/R)",
+    "Consistency model tradeoffs — where this system lands on the CAP theorem, and why",
+    "Conflict resolution when concurrent writes to the same key diverge",
+    "Failure detection and how the system recovers a failed node's data"
+  ]
+}

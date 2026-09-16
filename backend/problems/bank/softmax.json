@@ -1,0 +1,29 @@
+{
+  "id": "softmax",
+  "title": "Numerically Stable Softmax",
+  "difficulty": "Easy",
+  "topics": ["math", "numerical stability"],
+  "companies": ["OpenAI", "Anthropic", "Google DeepMind", "NVIDIA"],
+  "prompt": "Implement `softmax(logits)`, converting a list of raw scores into a probability distribution that sums to 1. Your implementation must be numerically stable — it should not overflow or produce NaN even when the input contains large values (e.g. logits in the hundreds or thousands).",
+  "constraints": [
+    "1 <= len(logits) <= 10^4",
+    "logits may contain large positive or negative values",
+    "No use of numpy or other third-party numeric libraries — plain Python and the math module only"
+  ],
+  "function_name": "softmax",
+  "starter_code": "from typing import List\n\n\ndef softmax(logits: List[float]) -> List[float]:\n    pass\n",
+  "examples": [
+    {"input": "logits = [1.0, 2.0, 3.0]", "output": "[0.0900, 0.2447, 0.6652] (approximately)"},
+    {"input": "logits = [1000.0, 1000.0]", "output": "[0.5, 0.5]"}
+  ],
+  "test_cases": [
+    {"args": [[1.0, 2.0, 3.0]], "expected": "[0.09, 0.2447, 0.6652] (approx)"},
+    {"args": [[1000.0, 1000.0]], "expected": [0.5, 0.5]},
+    {"args": [[0.0, 0.0, 0.0]], "expected": [0.3333, 0.3333, 0.3333]}
+  ],
+  "hints": [
+    "The naive exp(x)/sum(exp(x)) overflows for large x — what value could you subtract from every element first without changing the result?",
+    "Subtracting the max of the input before exponentiating keeps every exponent <= 0, avoiding overflow, and the softmax output is unchanged by this shift.",
+    "Watch out for the denominator being computed correctly as a sum over the *shifted* exponentials, not the raw ones."
+  ]
+}

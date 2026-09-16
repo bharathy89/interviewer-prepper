@@ -1,0 +1,19 @@
+{
+  "id": "chat_system",
+  "title": "Design a Messaging/Chat System",
+  "difficulty": "Hard",
+  "companies": ["Meta", "Google", "Microsoft"],
+  "prompt": "Design a one-on-one and group chat system like WhatsApp or Slack — users can send messages that are delivered in near real time, and message history is available when a user comes back online.",
+  "requirements": [
+    "Functional: 1:1 and group messaging, delivery to online users in near real time, offline users get messages when they reconnect, message history/search",
+    "Non-functional: hundreds of millions of daily active users, low delivery latency, messages should not be lost, ordering should be reasonable within a conversation"
+  ],
+  "discussion_points": [
+    "Real-time delivery mechanism (long polling, WebSockets, push notifications) and connection management at scale",
+    "How to route a message to the right server when a recipient's connection lives on a different server",
+    "Storage model for message history (and how it supports pagination/search)",
+    "Handling offline delivery and message ordering/deduplication",
+    "Group chat fan-out: pushing to every member vs a pull model",
+    "Read receipts / delivery status without heavy write amplification"
+  ]
+}

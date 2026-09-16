@@ -1,0 +1,32 @@
+{
+  "id": "reverse_words_in_place",
+  "title": "Reverse Words in a String",
+  "difficulty": "Medium",
+  "topics": ["string", "two pointers"],
+  "companies": ["Apple", "Microsoft", "Netflix"],
+  "prompt": "Given an input string `s`, reverse the order of the words. A word is a maximal substring of non-space characters. Return a string with the words in reverse order, joined by a single space, with no leading, trailing, or extra interior spaces.",
+  "constraints": [
+    "1 <= len(s) <= 10^4",
+    "s contains English letters, digits, and spaces (possibly multiple/leading/trailing spaces).",
+    "There is at least one word in s."
+  ],
+  "function_name": "reverse_words",
+  "starter_code": "def reverse_words(s: str) -> str:\n    pass\n",
+  "examples": [
+    {"input": "s = \"the sky is blue\"", "output": "\"blue is sky the\""},
+    {"input": "s = \"  hello world  \"", "output": "\"world hello\""},
+    {"input": "s = \"a good   example\"", "output": "\"example good a\""}
+  ],
+  "test_cases": [
+    {"args": ["the sky is blue"], "expected": "blue is sky the"},
+    {"args": ["  hello world  "], "expected": "world hello"},
+    {"args": ["a good   example"], "expected": "example good a"},
+    {"args": ["single"], "expected": "single"},
+    {"args": ["  multiple   spaces   between  "], "expected": "between spaces multiple"}
+  ],
+  "hints": [
+    "Splitting on whitespace and filtering empties handles multiple/leading/trailing spaces cleanly.",
+    "Python's str.split() with no arguments already collapses runs of whitespace for you.",
+    "After splitting into words, reverse the list and join with a single space."
+  ]
+}

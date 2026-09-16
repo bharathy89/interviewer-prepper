@@ -1,0 +1,29 @@
+{
+  "id": "climbing_stairs",
+  "title": "Climbing Stairs",
+  "difficulty": "Easy",
+  "topics": ["dynamic programming"],
+  "companies": ["Amazon", "Apple"],
+  "prompt": "You are climbing a staircase with `n` steps. Each time you can climb either 1 or 2 steps. In how many distinct ways can you climb to the top?",
+  "constraints": [
+    "1 <= n <= 45"
+  ],
+  "function_name": "climb_stairs",
+  "starter_code": "def climb_stairs(n: int) -> int:\n    pass\n",
+  "examples": [
+    {"input": "n = 2", "output": "2"},
+    {"input": "n = 3", "output": "3"}
+  ],
+  "test_cases": [
+    {"args": [2], "expected": 2},
+    {"args": [3], "expected": 3},
+    {"args": [1], "expected": 1},
+    {"args": [5], "expected": 8},
+    {"args": [10], "expected": 89}
+  ],
+  "hints": [
+    "Notice the number of ways to reach step n is related to the ways to reach n-1 and n-2.",
+    "This is really the Fibonacci sequence in disguise.",
+    "You only need to track the last two values, not a full array — O(1) space."
+  ]
+}

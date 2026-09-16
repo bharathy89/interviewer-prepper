@@ -1,0 +1,19 @@
+{
+  "id": "llm_inference_serving",
+  "title": "Design an LLM Inference Serving System",
+  "difficulty": "Hard",
+  "companies": ["OpenAI", "Anthropic", "NVIDIA", "Mistral AI", "xAI"],
+  "prompt": "Design a serving system that runs a large language model behind an API: it accepts a stream of user requests (each a prompt, wanting streamed token-by-token output) and returns generated tokens with low latency, using a fixed pool of GPUs efficiently.",
+  "requirements": [
+    "Functional: accept generation requests with prompts and parameters, stream tokens back as they're generated, support many concurrent requests per GPU",
+    "Non-functional: low time-to-first-token, high aggregate throughput (tokens/sec across the GPU fleet), must not let one huge request starve others"
+  ],
+  "discussion_points": [
+    "Continuous/dynamic batching of requests with different prompt lengths and arrival times onto the same GPU",
+    "KV-cache management: memory budget per GPU, eviction when the cache fills up, and reuse across requests sharing a prefix",
+    "Scheduling policy across GPUs (which request goes where) and fairness between a short chat request and a long completion",
+    "Autoscaling the GPU fleet based on queue depth/load, and cold-start cost of loading model weights",
+    "Where request queuing and backpressure live when the fleet is saturated",
+    "How streaming output is delivered back to clients (chunked HTTP, SSE, WebSockets) without blocking the generation loop"
+  ]
+}

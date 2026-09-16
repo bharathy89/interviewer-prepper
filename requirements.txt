@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+ollama
+faster-whisper
+webrtcvad
+setuptools<81  # webrtcvad imports pkg_resources, removed from setuptools>=81
+numpy
+kokoro-onnx
+soundfile

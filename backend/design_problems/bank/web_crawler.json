@@ -1,0 +1,19 @@
+{
+  "id": "web_crawler",
+  "title": "Design a Web Crawler",
+  "difficulty": "Medium",
+  "companies": ["Google", "Amazon"],
+  "prompt": "Design a web crawler that starts from a set of seed URLs, discovers and fetches pages, extracts links, and continues crawling — at large scale, and politely (respecting each site's crawl rate).",
+  "requirements": [
+    "Functional: fetch a page, parse out links, enqueue new URLs, avoid re-crawling the same page unnecessarily",
+    "Non-functional: billions of pages, must not overwhelm any single site (politeness/rate limiting per domain), should be resumable after a crash"
+  ],
+  "discussion_points": [
+    "URL frontier design: prioritization and per-domain politeness/rate limiting",
+    "Duplicate URL and duplicate-content detection at this scale",
+    "Distributing crawling work across many worker machines",
+    "DNS resolution and fetch performance at scale",
+    "Storage for the URL frontier and crawled content",
+    "Handling crawler traps (infinite URL spaces) and malformed pages"
+  ]
+}

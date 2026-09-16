@@ -1,0 +1,19 @@
+{
+  "id": "llm_api_gateway",
+  "title": "Design an LLM API Gateway with Rate Limiting and Usage Metering",
+  "difficulty": "Medium",
+  "companies": ["OpenAI", "Anthropic", "Mistral AI", "xAI"],
+  "prompt": "Design the API gateway that sits in front of an LLM product (like a chat-completions API): it authenticates requests, enforces per-customer rate limits and quotas, routes requests to the right model/backend, and meters token usage for billing.",
+  "requirements": [
+    "Functional: authenticate API keys, enforce per-customer rate limits (requests/sec and tokens/min) and monthly quotas, route to the correct model backend, accurately meter token usage per request for billing",
+    "Non-functional: gateway must add minimal latency to every request, rate limiting must work correctly across many gateway instances, usage metering must not lose or double-count usage even under failures"
+  ],
+  "discussion_points": [
+    "Where rate-limit state lives so it's consistent across multiple gateway instances behind a load balancer",
+    "Rate limiting algorithm choice (token bucket, sliding window, etc.) and enforcing both a short-term rate and a longer-term quota",
+    "Metering streamed responses accurately (token counts often aren't known until the response finishes)",
+    "Ensuring billing usage records aren't lost or double-counted if a gateway instance crashes mid-request",
+    "Routing/load-balancing across multiple backend model deployments, including handling a backend that's overloaded or down",
+    "How a customer's quota gets reset periodically and how limit changes take effect without redeploying the gateway"
+  ]
+}

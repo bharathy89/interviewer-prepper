@@ -1,0 +1,18 @@
+{
+  "id": "rate_limiter",
+  "title": "Design a Rate Limiter",
+  "difficulty": "Medium",
+  "companies": ["Amazon", "Microsoft", "Google"],
+  "prompt": "Design a rate limiter that can be applied in front of an API to limit each client to a configurable number of requests per time window, working correctly across multiple servers.",
+  "requirements": [
+    "Functional: allow/reject requests based on a per-client rate limit rule, support different limits per API/client tier",
+    "Non-functional: must work correctly with multiple application servers behind a load balancer, minimal added latency, should not become a single point of failure"
+  ],
+  "discussion_points": [
+    "Algorithm choice: token bucket, leaky bucket, fixed window counter, sliding window log/counter",
+    "Where state lives so multiple servers see a consistent view (e.g. a shared fast store)",
+    "Race conditions when many requests arrive concurrently for the same client",
+    "What happens if the shared store is briefly unavailable — fail open or fail closed?",
+    "How this scales as the number of distinct clients grows very large"
+  ]
+}
