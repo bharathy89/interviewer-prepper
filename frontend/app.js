@@ -15,6 +15,9 @@ let processorNode = null;
 let proactivePollTimer = null;
 let codeSnapshotTimer = null;
 let bargeInStreak = 0;
+let userTalking = false;
+let userTalkingTimeout = null;
+const USER_TALKING_HANGOVER_MS = 800; // avoid flickering false between words
 
 // Raised from 0.02 — that triggered on ordinary ambient noise (a click, a cough,
 // background sound), which cut off TTS mid-sentence. BARGE_IN_CONSECUTIVE_BUFFERS
@@ -298,6 +301,13 @@ async function processSpeechQueue() {
     prefetch = null;
     return;
   }
+  if (userTalking) {
+    // Don't start a new reply on top of the candidate mid-sentence — wait
+    // for them to pause. Keep `speaking` true so speak() doesn't re-enter.
+    speaking = true;
+    setTimeout(processSpeechQueue, 250);
+    return;
+  }
   speaking = true;
   const text = speechQueue.shift();
 
@@ -453,6 +463,15 @@ async function enableMic() {
     const level = rms(samples);
     if (level > BARGE_IN_RMS_THRESHOLD) {
       bargeInStreak++;
+      if (bargeInStreak >= BARGE_IN_CONSECUTIVE_BUFFERS) {
+        // Tracked independent of isSpeaking() — a reply that finishes
+        // computing while the candidate is mid-sentence on their next
+        // thought should wait for them to pause, not just avoid
+        // interrupting whatever happened to already be playing.
+        userTalking = true;
+        clearTimeout(userTalkingTimeout);
+        userTalkingTimeout = setTimeout(() => { userTalking = false; }, USER_TALKING_HANGOVER_MS);
+      }
       if (isSpeaking()) {
         console.debug(`[barge-in] rms=${level.toFixed(4)} streak=${bargeInStreak}/${BARGE_IN_CONSECUTIVE_BUFFERS}`);
       }
