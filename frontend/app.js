@@ -21,6 +21,9 @@ let bargeInStreak = 0;
 // additionally requires that loudness to be sustained across several buffers in a
 // row (not a single blip) before treating it as the candidate actually starting to
 // talk, mirroring how the server-side VAD avoids reacting to a single noisy frame.
+// echoCancellation is now off (see enableMic) so these numbers are unverified
+// against real speaker/mic hardware — check the console.debug rms/streak log
+// below during a real interruption and retune if it's still not triggering.
 const BARGE_IN_RMS_THRESHOLD = 0.05;
 const BARGE_IN_CONSECUTIVE_BUFFERS = 3;
 const CODE_SNAPSHOT_DEBOUNCE_MS = 1500;
@@ -429,8 +432,14 @@ async function drainAudioQueue() {
 async function enableMic() {
   pendingAudioChunks = [];
   sendingAudio = false;
+  // echoCancellation off deliberately: on speakers, the browser's own AEC
+  // treats "the sound coming out of the speakers" as noise to remove from the
+  // mic — and a real interruption spoken over that same TTS audio gets
+  // suppressed right along with it, so barge-in silently stops working. The
+  // tradeoff is the TTS's own leaked audio is no longer pre-filtered before
+  // it reaches our own barge-in RMS check below.
   mediaStream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true },
+    audio: { echoCancellation: false, noiseSuppression: true },
   });
   audioContext = new AudioContext({ sampleRate: 16000 });
   sourceNode = audioContext.createMediaStreamSource(mediaStream);
@@ -441,9 +450,14 @@ async function enableMic() {
     const raw = event.inputBuffer.getChannelData(0);
     const samples = resampleTo16k(raw, audioContext.sampleRate);
 
-    if (rms(samples) > BARGE_IN_RMS_THRESHOLD) {
+    const level = rms(samples);
+    if (level > BARGE_IN_RMS_THRESHOLD) {
       bargeInStreak++;
+      if (isSpeaking()) {
+        console.debug(`[barge-in] rms=${level.toFixed(4)} streak=${bargeInStreak}/${BARGE_IN_CONSECUTIVE_BUFFERS}`);
+      }
       if (bargeInStreak >= BARGE_IN_CONSECUTIVE_BUFFERS && isSpeaking()) {
+        console.debug("[barge-in] triggered — stopping TTS");
         stopSpeaking();
       }
     } else {
