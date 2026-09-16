@@ -10,7 +10,7 @@ def _numbered(code: str) -> str:
     return "\n".join(f"{str(i).rjust(width)}| {line}" for i, line in enumerate(lines, start=1))
 
 
-def _system_prompt(problem: dict, company: str | None) -> str:
+def _system_prompt(problem: dict, company: str | None, persona_name: str) -> str:
     profile = get_profile(company)
     company_label = company if company and company != "General" else "a generalist tech company"
 
@@ -20,7 +20,9 @@ def _system_prompt(problem: dict, company: str | None) -> str:
     )
     hints = "\n".join(f"{i + 1}. {h}" for i, h in enumerate(problem["hints"]))
 
-    return f"""You are conducting a live technical coding interview, in the style of {company_label}.
+    return f"""You are {persona_name}, conducting a live technical coding interview, in the style
+of {company_label}. Your name is {persona_name} — introduce yourself with it and answer to it if
+asked, but don't sign or repeat your name in every message.
 Interview style: {profile['style']}
 
 Problem: {problem['title']} ({problem['difficulty']})
@@ -51,32 +53,36 @@ Rules:
 """
 
 
-def _history_to_messages(problem: dict, company: str | None, history: list[dict]) -> list[dict]:
-    messages = [{"role": "system", "content": _system_prompt(problem, company)}]
+def _history_to_messages(
+    problem: dict, company: str | None, history: list[dict], persona_name: str
+) -> list[dict]:
+    messages = [{"role": "system", "content": _system_prompt(problem, company, persona_name)}]
     messages.extend({"role": h["role"], "content": h["content"]} for h in history)
     return messages
 
 
-def opening_message(problem: dict, company: str | None) -> str:
+def opening_message(problem: dict, company: str | None, persona_name: str) -> str:
     profile = get_profile(company)
     company_note = f" We'll run this in the style of {company}: {profile['style']}" if (
         company and company != "General"
     ) else ""
     return (
-        f"Let's get started. Here's your problem: **{problem['title']}** ({problem['difficulty']})."
-        f"{company_note} Take a moment to read it over, and walk me through your approach before you "
-        f"start coding."
+        f"Hi, I'm {persona_name}. Let's get started. Here's your problem: **{problem['title']}** "
+        f"({problem['difficulty']}).{company_note} Take a moment to read it over, and walk me "
+        f"through your approach before you start coding."
     )
 
 
-def respond(problem: dict, company: str | None, history: list[dict], message: str, code: str) -> str:
+def respond(
+    problem: dict, company: str | None, history: list[dict], message: str, code: str, persona_name: str
+) -> str:
     history = history + [
         {
             "role": "user",
             "content": f"{message}\n\n--- Candidate's current code (line-numbered) ---\n{_numbered(code)}",
         }
     ]
-    messages = _history_to_messages(problem, company, history)
+    messages = _history_to_messages(problem, company, history, persona_name)
     return ollama_client.chat(messages)
 
 
@@ -85,6 +91,7 @@ def maybe_intervene(
     company: str | None,
     history: list[dict],
     code: str,
+    persona_name: str,
     transcript: str | None = None,
 ) -> str | None:
     """Decide whether the interviewer should proactively say something right now.
@@ -121,7 +128,7 @@ Candidate's current code (line-numbered):
 {reply_instructions}
 """
     history = history + [{"role": "user", "content": prompt}]
-    messages = _history_to_messages(problem, company, history)
+    messages = _history_to_messages(problem, company, history, persona_name)
     reply = ollama_client.chat(messages).strip()
     if reply == NO_COMMENT or not reply:
         return None

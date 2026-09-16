@@ -31,6 +31,13 @@ VOICE_SPEEDS = {
 }
 DEFAULT_SPEED = 0.8
 
+# The persona name each voice answers to — see interviewer.py / design_interviewer.py,
+# which thread this into the system prompt so the interviewer can introduce itself.
+PERSONA_NAMES = {
+    "af_heart": "Lucy",
+    "am_onyx": "Mike",
+}
+
 # Voices the frontend is allowed to request. Kokoro ships 54 voices total;
 # restricting the API to a known-good set avoids passing arbitrary client
 # input straight into voice lookup.

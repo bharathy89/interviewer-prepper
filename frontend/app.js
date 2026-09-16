@@ -629,7 +629,12 @@ async function startInterview() {
     const data = await api("/api/session/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ problem_id: problemId, company, interview_type: interviewType }),
+      body: JSON.stringify({
+        problem_id: problemId,
+        company,
+        interview_type: interviewType,
+        voice: selectedVoice,
+      }),
     });
 
     sessionId = data.session_id;
@@ -728,6 +733,8 @@ async function resumeSession(id) {
     sessionId = data.session_id;
     currentProblem = data.problem;
     interviewType = data.interview_type;
+    selectedVoice = data.voice;
+    document.querySelectorAll(".voice-btn").forEach((b) => b.classList.toggle("active", b.dataset.voice === selectedVoice));
 
     $("start-screen").classList.add("hidden");
     $("interview-screen").classList.remove("hidden");

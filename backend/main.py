@@ -88,6 +88,7 @@ class StartRequest(BaseModel):
     problem_id: str | None = None
     company: str | None = None
     interview_type: str = "coding"  # "coding" | "system_design"
+    voice: str = tts.DEFAULT_VOICE
 
 
 class ChatRequest(BaseModel):
@@ -148,14 +149,17 @@ def start_session(req: StartRequest):
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
+    voice = req.voice if req.voice in tts.ALLOWED_VOICES else tts.DEFAULT_VOICE
+    persona_name = tts.PERSONA_NAMES[voice]
     session_id = str(uuid.uuid4())
-    opening = active_interviewer.opening_message(problem, req.company)
+    opening = active_interviewer.opening_message(problem, req.company, persona_name)
     initial_content = "[]" if is_design else problem["starter_code"]
 
     SESSIONS[session_id] = {
         "problem": problem,
         "company": req.company,
         "interview_type": req.interview_type,
+        "voice": voice,
         "history": [{"role": "assistant", "content": opening}],
         "start_time": time.time(),
         "last_canvas_image": None,  # design mode only; kept fresh by canvas_snapshot
@@ -178,6 +182,10 @@ def _get_session(session_id: str) -> dict:
     if session is None:
         raise HTTPException(status_code=404, detail="Unknown session")
     return session
+
+
+def _persona_name(session: dict) -> str:
+    return tts.PERSONA_NAMES.get(session.get("voice"), tts.PERSONA_NAMES[tts.DEFAULT_VOICE])
 
 
 @app.get("/api/sessions")
@@ -211,6 +219,7 @@ def get_session(session_id: str):
         "problem": session["problem"],
         "company": session["company"],
         "interview_type": session["interview_type"],
+        "voice": session.get("voice", tts.DEFAULT_VOICE),
         "history": session["history"],
         "last_code": session["last_code"],
         "start_time": session["start_time"],
@@ -226,11 +235,12 @@ def chat(session_id: str, req: ChatRequest):
         if is_design:
             reply = design_interviewer.respond(
                 session["problem"], session["company"], session["history"], req.message,
-                session.get("last_canvas_image"),
+                _persona_name(session), session.get("last_canvas_image"),
             )
         else:
             reply = interviewer.respond(
-                session["problem"], session["company"], session["history"], req.message, req.code
+                session["problem"], session["company"], session["history"], req.message, req.code,
+                _persona_name(session),
             )
     except InterviewerUnavailable as exc:
         return {"reply": str(exc), "error": True}
@@ -278,13 +288,14 @@ async def _generate_voice_reply(session_id: str, transcript: str) -> None:
         if session["interview_type"] == "system_design":
             reply = await run_in_threadpool(
                 design_interviewer.maybe_intervene,
-                session["problem"], session["company"], session["history"], transcript,
-                session.get("last_canvas_image"),
+                session["problem"], session["company"], session["history"],
+                _persona_name(session), transcript, session.get("last_canvas_image"),
             )
         else:
             reply = await run_in_threadpool(
                 interviewer.maybe_intervene,
-                session["problem"], session["company"], session["history"], session["last_code"], transcript,
+                session["problem"], session["company"], session["history"], session["last_code"],
+                _persona_name(session), transcript,
             )
     except InterviewerUnavailable as exc:
         reply = str(exc)
@@ -351,7 +362,8 @@ def design_review(session_id: str, req: DesignReviewRequest):
     session = _get_session(session_id)
     try:
         reply = design_interviewer.review_diagram(
-            session["problem"], session["company"], session["history"], req.image_b64
+            session["problem"], session["company"], session["history"], req.image_b64,
+            _persona_name(session),
         )
     except InterviewerUnavailable as exc:
         return {"reply": str(exc), "error": True}
@@ -369,7 +381,7 @@ def design_update(session_id: str, req: DesignUpdateRequest):
     try:
         elements = design_interviewer.suggest_diagram_update(
             session["problem"], session["company"], session["history"],
-            req.image_b64, req.current_elements,
+            req.image_b64, req.current_elements, _persona_name(session),
         )
     except InterviewerUnavailable as exc:
         return {"elements": [], "error": str(exc)}
@@ -385,12 +397,13 @@ def proactive(session_id: str):
     try:
         if session["interview_type"] == "system_design":
             reply = design_interviewer.maybe_intervene(
-                session["problem"], session["company"], session["history"], None,
-                session.get("last_canvas_image"),
+                session["problem"], session["company"], session["history"],
+                _persona_name(session), None, session.get("last_canvas_image"),
             )
         else:
             reply = interviewer.maybe_intervene(
-                session["problem"], session["company"], session["history"], session["last_code"], None
+                session["problem"], session["company"], session["history"], session["last_code"],
+                _persona_name(session), None,
             )
     except InterviewerUnavailable as exc:
         return {"message": str(exc)}

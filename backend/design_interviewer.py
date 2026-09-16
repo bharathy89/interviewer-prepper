@@ -6,14 +6,16 @@ from .companies import get_profile
 from .interviewer import NO_COMMENT
 
 
-def _system_prompt(problem: dict, company: str | None) -> str:
+def _system_prompt(problem: dict, company: str | None, persona_name: str) -> str:
     profile = get_profile(company)
     company_label = company if company and company != "General" else "a generalist tech company"
 
     requirements = "\n".join(f"- {r}" for r in problem["requirements"])
     discussion_points = "\n".join(f"- {d}" for d in problem["discussion_points"])
 
-    return f"""You are conducting a live system design interview, in the style of {company_label}.
+    return f"""You are {persona_name}, conducting a live system design interview, in the style of
+{company_label}. Your name is {persona_name} — introduce yourself with it and answer to it if
+asked, but don't sign or repeat your name in every message.
 Interview style: {profile['style']}
 
 Problem: {problem['title']} ({problem['difficulty']})
@@ -42,29 +44,36 @@ Rules:
 """
 
 
-def _history_to_messages(problem: dict, company: str | None, history: list[dict]) -> list[dict]:
-    messages = [{"role": "system", "content": _system_prompt(problem, company)}]
+def _history_to_messages(
+    problem: dict, company: str | None, history: list[dict], persona_name: str
+) -> list[dict]:
+    messages = [{"role": "system", "content": _system_prompt(problem, company, persona_name)}]
     messages.extend({"role": h["role"], "content": h["content"]} for h in history)
     return messages
 
 
-def opening_message(problem: dict, company: str | None) -> str:
+def opening_message(problem: dict, company: str | None, persona_name: str) -> str:
     profile = get_profile(company)
     company_note = f" We'll run this in the style of {company}: {profile['style']}" if (
         company and company != "General"
     ) else ""
     return (
-        f"Let's get started. Here's your problem: **{problem['title']}** ({problem['difficulty']})."
-        f"{company_note} Take a moment to read over the requirements, and walk me through your "
-        f"high-level approach before you start sketching out the design."
+        f"Hi, I'm {persona_name}. Let's get started. Here's your problem: **{problem['title']}** "
+        f"({problem['difficulty']}).{company_note} Take a moment to read over the requirements, "
+        f"and walk me through your high-level approach before you start sketching out the design."
     )
 
 
 def respond(
-    problem: dict, company: str | None, history: list[dict], message: str, image_b64: str | None = None
+    problem: dict,
+    company: str | None,
+    history: list[dict],
+    message: str,
+    persona_name: str,
+    image_b64: str | None = None,
 ) -> str:
     history = history + [{"role": "user", "content": message}]
-    messages = _history_to_messages(problem, company, history)
+    messages = _history_to_messages(problem, company, history, persona_name)
     if image_b64:
         return ollama_client.chat_with_image(messages, image_b64)
     return ollama_client.chat(messages)
@@ -74,6 +83,7 @@ def maybe_intervene(
     problem: dict,
     company: str | None,
     history: list[dict],
+    persona_name: str,
     transcript: str | None = None,
     image_b64: str | None = None,
 ) -> str | None:
@@ -119,7 +129,7 @@ def maybe_intervene(
 {reply_instructions}
 """
     history = history + [{"role": "user", "content": prompt}]
-    messages = _history_to_messages(problem, company, history)
+    messages = _history_to_messages(problem, company, history, persona_name)
     reply = (
         ollama_client.chat_with_image(messages, image_b64) if image_b64 else ollama_client.chat(messages)
     ).strip()
@@ -128,7 +138,9 @@ def maybe_intervene(
     return reply
 
 
-def review_diagram(problem: dict, company: str | None, history: list[dict], image_b64: str) -> str:
+def review_diagram(
+    problem: dict, company: str | None, history: list[dict], image_b64: str, persona_name: str
+) -> str:
     prompt = (
         "Here is the candidate's current diagram. Look at what's actually drawn — the boxes, "
         "labels, and connections — and give feedback in 1-2 sentences, no more: point out one "
@@ -136,7 +148,7 @@ def review_diagram(problem: dict, company: str | None, history: list[dict], imag
         "or ask a clarifying question about a component in it. No preamble."
     )
     history = history + [{"role": "user", "content": prompt}]
-    messages = _history_to_messages(problem, company, history)
+    messages = _history_to_messages(problem, company, history, persona_name)
     return ollama_client.chat_with_image(messages, image_b64)
 
 
@@ -190,6 +202,7 @@ def suggest_diagram_update(
     history: list[dict],
     image_b64: str,
     current_elements: list[dict],
+    persona_name: str,
 ) -> list[dict]:
     """Ask the model for NEW elements to add to the diagram (never a full replacement,
     so a bad suggestion can never delete the candidate's own work) in a simplified
@@ -223,6 +236,6 @@ Place new elements in empty space that doesn't overlap the existing element boun
 If you have nothing concrete to add right now, reply with exactly: []
 """
     history = history + [{"role": "user", "content": prompt}]
-    messages = _history_to_messages(problem, company, history)
+    messages = _history_to_messages(problem, company, history, persona_name)
     reply = ollama_client.chat_with_image(messages, image_b64)
     return _sanitize_skeleton(_extract_json_array(reply), current_elements)
