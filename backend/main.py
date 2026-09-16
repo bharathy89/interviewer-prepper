@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
-from . import auth, design_interviewer, interviewer, monitor, sandbox
+from . import auth, design_interviewer, interviewer, monitor, persistence, sandbox
 from .audio import stt, tts
 from .audio.vad import UtteranceSegmenter
 from .companies import list_companies
@@ -37,10 +37,25 @@ async def _sweep_expired_sessions():
         expired = [sid for sid, s in SESSIONS.items() if s["start_time"] < cutoff]
         for sid in expired:
             del SESSIONS[sid]
+            persistence.delete_session(sid)
+
+
+def _persist(session_id: str) -> None:
+    persistence.save_session(session_id, SESSIONS[session_id])
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Sessions live in memory for speed, but are mirrored to a local sqlite
+    # file (backend/sessions.db) so an interview survives a server restart —
+    # the VAD segmenter and audio buffer are the only pieces not restored,
+    # since they're just in-flight audio-capture state, safe to reset.
+    for session_id, data in persistence.load_all_sessions().items():
+        SESSIONS[session_id] = {
+            **data,
+            "audio_buffer": bytearray(),
+            "vad_segmenter": UtteranceSegmenter(),
+        }
     task = asyncio.create_task(_sweep_expired_sessions())
     yield
     task.cancel()
@@ -135,6 +150,7 @@ def start_session(req: StartRequest):
         **monitor.new_state(initial_content),
         "vad_segmenter": UtteranceSegmenter(),
     }
+    _persist(session_id)
 
     return {
         "session_id": session_id,
@@ -180,6 +196,7 @@ def chat(session_id: str, req: ChatRequest):
             }
         )
     session["history"].append({"role": "assistant", "content": reply})
+    _persist(session_id)
     return {"reply": reply, "error": False}
 
 
@@ -194,6 +211,7 @@ def set_mic(session_id: str, req: MicRequest):
     session = _get_session(session_id)
     session["mic_enabled"] = req.enabled
     session["vad_segmenter"].reset()
+    _persist(session_id)
     return {"mic_enabled": session["mic_enabled"]}
 
 
@@ -217,6 +235,7 @@ async def audio_chunk(session_id: str, request: Request):
         return {"transcript": None, "reply": None, "stt_ms": stt_ms}
 
     session["history"].append({"role": "user", "content": f'(spoken) "{transcript}"'})
+    _persist(session_id)
 
     try:
         if session["interview_type"] == "system_design":
@@ -236,6 +255,7 @@ async def audio_chunk(session_id: str, request: Request):
     if reply:
         session["history"].append({"role": "assistant", "content": reply})
         monitor.mark_hint_given(session)
+        _persist(session_id)
 
     return {"transcript": transcript, "reply": reply, "stt_ms": stt_ms}
 
@@ -244,6 +264,8 @@ async def audio_chunk(session_id: str, request: Request):
 def code_snapshot(session_id: str, req: CodeRequest):
     session = _get_session(session_id)
     changed_lines = monitor.record_code_snapshot(session, req.code)
+    if changed_lines:
+        _persist(session_id)
     return {"changed_lines": changed_lines}
 
 
@@ -253,6 +275,7 @@ def canvas_snapshot(session_id: str, req: CanvasRequest):
     monitor.record_code_snapshot(session, json.dumps(req.shapes))
     if req.image_b64:
         session["last_canvas_image"] = req.image_b64
+    _persist(session_id)
     return {"ok": True}
 
 
@@ -269,6 +292,7 @@ def design_review(session_id: str, req: DesignReviewRequest):
     session["history"].append({"role": "user", "content": "(shared the current diagram)"})
     session["history"].append({"role": "assistant", "content": reply})
     monitor.mark_hint_given(session)
+    _persist(session_id)
     return {"reply": reply, "error": False}
 
 
@@ -307,6 +331,7 @@ def proactive(session_id: str):
     monitor.mark_hint_given(session)
     if reply:
         session["history"].append({"role": "assistant", "content": reply})
+    _persist(session_id)
     return {"message": reply}
 
 

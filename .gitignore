@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .DS_Store
 .claude/
+backend/sessions.db
 
 # Downloaded automatically on first run (see README) — large binaries, not source
 backend/audio/models/
