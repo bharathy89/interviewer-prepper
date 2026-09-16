@@ -40,13 +40,18 @@ used for both text chat and vision (system-design diagram review). Ollama cloud 
 occasionally get retired — if you see a "retired" / status 410 error in the chat panel, run
 `ollama list` and swap in a currently-live model there.
 
-Voice replies are synthesized locally with [Kokoro](https://github.com/thewh1teagle/kokoro-onnx)
-(voice `af_heart` by default, set in `backend/audio/tts.py`). The ~330MB fp32 model + voice files
-are downloaded automatically into `backend/audio/models/` the first time a reply is spoken (no
-setup needed, just requires an internet connection on first use). The fp32 model is used
-deliberately over the smaller int8-quantized one — the quantized model's `ConvInteger` ops fall
-back to a slow unvectorized path on some CPUs (observed ~25-40s per reply on a cloud x86 VM vs.
-~4s for fp32 on the same hardware), even though it's faster on Apple Silicon.
+Pre-download the local voice models (not checked into the repo — see `.gitignore`) so the first
+interview doesn't stall on a download mid-session:
+
+```bash
+python -m scripts.download_voice_models
+```
+
+This fetches [Kokoro](https://github.com/thewh1teagle/kokoro-onnx) (TTS, voice `af_heart` by
+default, set in `backend/audio/tts.py`, ~330MB) and Whisper `base.en` (STT). The fp32 Kokoro model
+is used deliberately over the smaller int8-quantized one — the quantized model's `ConvInteger`
+ops fall back to a slow unvectorized path on some CPUs (observed ~25-40s per reply on a cloud x86
+VM vs. ~4s for fp32 on the same hardware), even though it's faster on Apple Silicon.
 
 ## Run
 
