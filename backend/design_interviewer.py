@@ -32,7 +32,10 @@ Rules:
   handing over an "ideal" architecture. This is a discussion, not a lecture.
 - Never just list all the discussion points at once — surface them naturally as the conversation
   progresses, the way a real interviewer would.
-- Keep responses concise and conversational, a few sentences at most, not an essay.
+- Keep every response short: 1-2 sentences is the target, 3 is the ceiling. No preamble, no
+  restating the problem or the candidate's own words back to them, no filler like "great
+  question" or "let's dive in" — get straight to the point, like a real interviewer typing in a
+  chat window, not writing an essay.
 - The candidate is sketching their design on a drawing canvas (boxes, arrows, labels) as you talk.
   You won't see it on every turn, but sometimes a description of it, or an image of it, will be
   included below — react to what's actually there when it is, rather than assuming.
@@ -99,11 +102,11 @@ def maybe_intervene(
 
 {diagram_note}
 
-If the candidate asked a direct question, answer it concisely. If they seem stuck or have gone
-quiet, ask a short question to nudge the discussion forward (e.g. about a requirement they
-haven't addressed yet, or a component they mentioned but haven't detailed). If neither applies —
-they're just thinking, or making fine progress — reply with exactly the single token
-{NO_COMMENT} and nothing else.
+If the candidate asked a direct question, answer it in 1-2 sentences, no more. If they seem stuck
+or have gone quiet, ask ONE short question (1 sentence) to nudge the discussion forward (e.g.
+about a requirement they haven't addressed yet, or a component they mentioned but haven't
+detailed). If neither applies — they're just thinking, or making fine progress — reply with
+exactly the single token {NO_COMMENT} and nothing else.
 """
     history = history + [{"role": "user", "content": prompt}]
     messages = _history_to_messages(problem, company, history)
@@ -118,9 +121,9 @@ they're just thinking, or making fine progress — reply with exactly the single
 def review_diagram(problem: dict, company: str | None, history: list[dict], image_b64: str) -> str:
     prompt = (
         "Here is the candidate's current diagram. Look at what's actually drawn — the boxes, "
-        "labels, and connections — and give brief feedback: point out something specific you see "
-        "(e.g. a missing piece, an unclear connection, or a good choice), or ask a clarifying "
-        "question about a component in it. Keep it conversational and short."
+        "labels, and connections — and give feedback in 1-2 sentences, no more: point out one "
+        "specific thing you see (e.g. a missing piece, an unclear connection, or a good choice), "
+        "or ask a clarifying question about a component in it. No preamble."
     )
     history = history + [{"role": "user", "content": prompt}]
     messages = _history_to_messages(problem, company, history)
