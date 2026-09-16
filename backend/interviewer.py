@@ -90,14 +90,27 @@ def maybe_intervene(
     """Decide whether the interviewer should proactively say something right now.
 
     Returns None if nothing is warranted, otherwise a short spoken-style message.
-    Called both when a voice utterance just completed (transcript set) and from the
-    stagnation poll (transcript None, triggered by no code progress / repeated failures).
+    Called both when a voice utterance just completed (transcript set — always gets
+    a reply, if only a brief acknowledgment) and from the periodic check-in poll
+    (transcript None, a flat few-minutes cadence — see monitor.py — where staying
+    silent is a valid outcome).
     """
     if transcript is not None:
         trigger_note = f'The candidate just said: "{transcript}"'
+        reply_instructions = (
+            "If they asked a direct question or are making a mistake worth flagging, respond in "
+            "1-2 sentences, naming the line number(s) if relevant. Otherwise they're just "
+            'narrating their thinking as they work — acknowledge briefly (a short variation of '
+            '"okay, continue" or "sounds good, keep going") so they know you\'re listening; don\'t '
+            "ask a new question or volunteer a hint they didn't ask for."
+        )
     else:
-        trigger_note = (
-            "The candidate hasn't changed their code in a while. Decide if a nudge is warranted."
+        trigger_note = "Periodic check-in — the candidate hasn't said anything in a while."
+        reply_instructions = (
+            f"If they seem stuck or are making a mistake, give the next appropriate hint from "
+            f"your escalating hint list in 1-2 sentences, naming the specific line number(s) "
+            f"involved. If they're likely just thinking or making fine progress, reply with "
+            f"exactly the single token {NO_COMMENT} and nothing else."
         )
 
     prompt = f"""{trigger_note}
@@ -105,11 +118,7 @@ def maybe_intervene(
 Candidate's current code (line-numbered):
 {_numbered(code)}
 
-If the candidate asked a direct question, answer it in 1-2 sentences, no more. If they seem stuck
-or are making a mistake, give the next appropriate hint from your escalating hint list in 1-2
-sentences, naming the specific line number(s) involved. If neither applies — they're just
-thinking out loud, or making fine progress — reply with exactly the single token {NO_COMMENT}
-and nothing else.
+{reply_instructions}
 """
     history = history + [{"role": "user", "content": prompt}]
     messages = _history_to_messages(problem, company, history)

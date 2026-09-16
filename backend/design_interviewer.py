@@ -80,14 +80,28 @@ def maybe_intervene(
     """Decide whether the interviewer should proactively say something right now.
 
     Returns None if nothing is warranted, otherwise a short spoken-style message.
-    Called both when a voice utterance just completed (transcript set) and from the
-    canvas-stagnation poll (transcript None, triggered by no diagram changes).
+    Called both when a voice utterance just completed (transcript set — always gets
+    a reply, if only a brief acknowledgment) and from the periodic check-in poll
+    (transcript None, a flat few-minutes cadence — see monitor.py — where staying
+    silent is a valid outcome).
     """
     if transcript is not None:
         trigger_note = f'The candidate just said: "{transcript}"'
+        reply_instructions = (
+            "If they asked a direct question or want something clarified, respond in 1-2 "
+            'sentences. Otherwise they\'re just narrating their thinking as they design — '
+            'acknowledge briefly (a short variation of "okay, continue" or "sounds good, keep '
+            'going") so they know you\'re listening; don\'t ask a new question or volunteer a '
+            "point they didn't ask for."
+        )
     else:
-        trigger_note = (
-            "The candidate hasn't changed their diagram in a while. Decide if a nudge is warranted."
+        trigger_note = "Periodic check-in — the candidate hasn't said anything in a while."
+        reply_instructions = (
+            f"If they seem stuck or have gone quiet, ask ONE short question (1 sentence) to nudge "
+            f"the discussion forward (e.g. about a requirement they haven't addressed yet, or a "
+            f"component they mentioned but haven't detailed). If they're likely just thinking or "
+            f"making fine progress, reply with exactly the single token {NO_COMMENT} and nothing "
+            f"else."
         )
 
     diagram_note = (
@@ -102,11 +116,7 @@ def maybe_intervene(
 
 {diagram_note}
 
-If the candidate asked a direct question, answer it in 1-2 sentences, no more. If they seem stuck
-or have gone quiet, ask ONE short question (1 sentence) to nudge the discussion forward (e.g.
-about a requirement they haven't addressed yet, or a component they mentioned but haven't
-detailed). If neither applies — they're just thinking, or making fine progress — reply with
-exactly the single token {NO_COMMENT} and nothing else.
+{reply_instructions}
 """
     history = history + [{"role": "user", "content": prompt}]
     messages = _history_to_messages(problem, company, history)

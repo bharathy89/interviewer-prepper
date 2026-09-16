@@ -20,6 +20,7 @@ _PERSISTED_FIELDS = [
     "last_code",
     "last_code_change_at",
     "last_hint_at",
+    "next_checkin_at",
 ]
 
 

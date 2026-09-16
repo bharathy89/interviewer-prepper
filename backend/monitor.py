@@ -1,8 +1,19 @@
 import difflib
+import random
 import time
 
-STAGNATION_SECONDS = 45
-HINT_COOLDOWN_SECONDS = 30
+# The proactive check-in (transcript=None poll) is a flat periodic cadence,
+# not an activity-based "you've been stuck" detector — a real interviewer
+# checks in every few minutes regardless of whether the candidate is quietly
+# making progress. Randomized within the range so it doesn't feel metronomic.
+# Voice-triggered engagement (the candidate actually saying something) is a
+# separate, immediate path — see interviewer.py / design_interviewer.py.
+CHECKIN_MIN_SECONDS = 180
+CHECKIN_MAX_SECONDS = 300
+
+
+def _next_checkin(now: float) -> float:
+    return now + random.uniform(CHECKIN_MIN_SECONDS, CHECKIN_MAX_SECONDS)
 
 
 def new_state(starter_code: str) -> dict:
@@ -14,6 +25,7 @@ def new_state(starter_code: str) -> dict:
         "last_code": starter_code,
         "last_code_change_at": now,
         "last_hint_at": 0.0,
+        "next_checkin_at": _next_checkin(now),
     }
 
 
@@ -35,14 +47,10 @@ def record_code_snapshot(state: dict, code: str) -> list[int]:
 
 
 def check_stagnation(state: dict) -> bool:
-    now = time.time()
-    if now - state["last_hint_at"] < HINT_COOLDOWN_SECONDS:
-        return False
-
-    return (now - state["last_code_change_at"] > STAGNATION_SECONDS) and (
-        now - state["last_hint_at"] > STAGNATION_SECONDS
-    )
+    return time.time() >= state["next_checkin_at"]
 
 
 def mark_hint_given(state: dict) -> None:
-    state["last_hint_at"] = time.time()
+    now = time.time()
+    state["last_hint_at"] = now
+    state["next_checkin_at"] = _next_checkin(now)
