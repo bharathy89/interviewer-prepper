@@ -27,7 +27,7 @@ DEFAULT_VOICE = "af_heart"
 # frontend/app.js voice toggle); the speed follows from that automatically.
 VOICE_SPEEDS = {
     "af_heart": 0.85,
-    "am_onyx": 0.9,
+    "am_onyx": 0.95,
 }
 DEFAULT_SPEED = 0.8
 
