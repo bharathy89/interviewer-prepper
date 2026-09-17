@@ -78,11 +78,24 @@ the interview.
 - **System design mode**: sketch your architecture on a real Excalidraw canvas (`frontend/canvas.js`).
   Click "Review my diagram" to have the interviewer look at it directly (vision) and comment on
   what's actually drawn, or "Suggest update" to have it propose concrete additions to the diagram.
+  Has two modes, picked on the start screen: **Interview** (the default — evaluative, asks probing
+  questions, hints only when you're stuck) and **Guided** (`backend/design_helper.py` — a coaching
+  mode that teaches instead of grading, building up the design step by step from simple to complex
+  through each problem's discussion points, explaining and proposing solutions rather than waiting
+  you out).
+- **Experience level** (`backend/seniority.py`): Fresh Grad through Principal, picked on the start
+  screen — calibrates how much the interviewer leads vs. waits before hinting, and what it expects
+  you to raise unprompted (e.g. a Principal candidate is expected to bring up cost/scale tradeoffs
+  unasked; a Fresh Grad gets walked toward a basic working design).
 - **Voice**: toggle the mic to talk to the interviewer — speech is transcribed locally with
   Whisper (`backend/audio/stt.py`) and segmented with a VAD (`backend/audio/vad.py`); replies are
-  spoken back with the local Kokoro TTS model (`backend/audio/tts.py`). A stagnation/struggle
-  monitor (`backend/monitor.py`) also has the interviewer proactively step in — mic on or off —
-  if you go quiet for a while (code or diagram unchanged).
+  spoken back with the local Kokoro TTS model (`backend/audio/tts.py`), voiced as either Lucy or
+  Mike (picked on the start screen). A stagnation/struggle monitor (`backend/monitor.py`) also has
+  the interviewer proactively check in every few minutes, mic on or off.
+- **Resume a session**: interviews persist to a local sqlite file (`backend/persistence.py`), so
+  the start screen always offers a "Resume a session" list to pick back up where you left off —
+  including after a server restart. "Exit" on the interview screen returns to the start screen
+  without ending the session.
 
 ## Hosting for others (optional)
 
