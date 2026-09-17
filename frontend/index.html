@@ -40,6 +40,23 @@
       <option value="">Random</option>
     </select>
 
+    <label for="seniority-select">Experience level</label>
+    <select id="seniority-select">
+      <option value="Fresh Grad">Fresh grad</option>
+      <option value="Junior">Junior</option>
+      <option value="Senior" selected>Senior</option>
+      <option value="Staff">Staff</option>
+      <option value="Principal">Principal</option>
+    </select>
+
+    <div id="design-mode-toggle" class="hidden">
+      <label>Mode</label>
+      <div id="design-mode-buttons">
+        <button id="mode-interview-btn" class="type-btn active" data-mode="interview" title="Evaluative — asks probing questions, hints only when you're stuck">Interview</button>
+        <button id="mode-guided-btn" class="type-btn" data-mode="guided" title="Teaching — builds the design with you step by step, simple to complex">Guided</button>
+      </div>
+    </div>
+
     <label>Interviewer voice</label>
     <div id="voice-toggle">
       <button class="type-btn voice-btn active" data-voice="af_heart">Lucy</button>

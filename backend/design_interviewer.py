@@ -4,9 +4,12 @@ import re
 from . import ollama_client
 from .companies import get_profile
 from .interviewer import NO_COMMENT
+from .seniority import DEFAULT_SENIORITY, get_bar
 
 
-def _system_prompt(problem: dict, company: str | None, persona_name: str) -> str:
+def _system_prompt(
+    problem: dict, company: str | None, persona_name: str, seniority: str = DEFAULT_SENIORITY
+) -> str:
     profile = get_profile(company)
     company_label = company if company and company != "General" else "a generalist tech company"
 
@@ -17,6 +20,9 @@ def _system_prompt(problem: dict, company: str | None, persona_name: str) -> str
 {company_label}. Your name is {persona_name} — introduce yourself with it and answer to it if
 asked, but don't sign or repeat your name in every message.
 Interview style: {profile['style']}
+
+You're interviewing at the {seniority} level. What "good" looks like at this level, and how much
+to lead vs. wait before hinting: {get_bar(seniority)}
 
 Problem: {problem['title']} ({problem['difficulty']})
 {problem['prompt']}
@@ -33,7 +39,7 @@ Rules:
 - Ask probing follow-up questions about scalability, data modeling, and tradeoffs rather than
   handing over an "ideal" architecture. This is a discussion, not a lecture.
 - Never just list all the discussion points at once — surface them naturally as the conversation
-  progresses, the way a real interviewer would.
+  progresses, the way a real interviewer would, calibrated to the seniority bar above.
 - Keep every response short: 1-2 sentences is the target, 3 is the ceiling. No preamble, no
   restating the problem or the candidate's own words back to them, no filler like "great
   question" or "let's dive in" — get straight to the point, like a real interviewer typing in a
@@ -45,9 +51,15 @@ Rules:
 
 
 def _history_to_messages(
-    problem: dict, company: str | None, history: list[dict], persona_name: str
+    problem: dict,
+    company: str | None,
+    history: list[dict],
+    persona_name: str,
+    seniority: str = DEFAULT_SENIORITY,
 ) -> list[dict]:
-    messages = [{"role": "system", "content": _system_prompt(problem, company, persona_name)}]
+    messages = [
+        {"role": "system", "content": _system_prompt(problem, company, persona_name, seniority)}
+    ]
     messages.extend({"role": h["role"], "content": h["content"]} for h in history)
     return messages
 
@@ -70,10 +82,11 @@ def respond(
     history: list[dict],
     message: str,
     persona_name: str,
+    seniority: str = DEFAULT_SENIORITY,
     image_b64: str | None = None,
 ) -> str:
     history = history + [{"role": "user", "content": message}]
-    messages = _history_to_messages(problem, company, history, persona_name)
+    messages = _history_to_messages(problem, company, history, persona_name, seniority)
     if image_b64:
         return ollama_client.chat_with_image(messages, image_b64)
     return ollama_client.chat(messages)
@@ -84,6 +97,7 @@ def maybe_intervene(
     company: str | None,
     history: list[dict],
     persona_name: str,
+    seniority: str = DEFAULT_SENIORITY,
     transcript: str | None = None,
     image_b64: str | None = None,
 ) -> str | None:
@@ -133,7 +147,7 @@ def maybe_intervene(
 {reply_instructions}
 """
     history = history + [{"role": "user", "content": prompt}]
-    messages = _history_to_messages(problem, company, history, persona_name)
+    messages = _history_to_messages(problem, company, history, persona_name, seniority)
     reply = (
         ollama_client.chat_with_image(messages, image_b64) if image_b64 else ollama_client.chat(messages)
     ).strip()
@@ -143,7 +157,12 @@ def maybe_intervene(
 
 
 def review_diagram(
-    problem: dict, company: str | None, history: list[dict], image_b64: str, persona_name: str
+    problem: dict,
+    company: str | None,
+    history: list[dict],
+    image_b64: str,
+    persona_name: str,
+    seniority: str = DEFAULT_SENIORITY,
 ) -> str:
     prompt = (
         "Here is the candidate's current diagram. Look at what's actually drawn — the boxes, "
@@ -152,7 +171,7 @@ def review_diagram(
         "or ask a clarifying question about a component in it. No preamble."
     )
     history = history + [{"role": "user", "content": prompt}]
-    messages = _history_to_messages(problem, company, history, persona_name)
+    messages = _history_to_messages(problem, company, history, persona_name, seniority)
     return ollama_client.chat_with_image(messages, image_b64)
 
 

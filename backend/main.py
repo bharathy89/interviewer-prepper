@@ -11,13 +11,14 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
-from . import auth, design_interviewer, interviewer, monitor, persistence, sandbox
+from . import auth, design_helper, design_interviewer, interviewer, monitor, persistence, sandbox
 from .audio import stt, tts
 from .audio.vad import UtteranceSegmenter
 from .companies import list_companies
 from .design_problems import loader as design_loader
 from .ollama_client import InterviewerUnavailable
 from .problems import loader
+from .seniority import DEFAULT_SENIORITY, SENIORITY_LEVELS
 
 MIN_UTTERANCE_SECONDS = 0.6
 MIN_UTTERANCE_BYTES = int(16000 * 2 * MIN_UTTERANCE_SECONDS)  # 16kHz, 16-bit mono
@@ -104,6 +105,8 @@ class StartRequest(BaseModel):
     company: str | None = None
     interview_type: str = "coding"  # "coding" | "system_design"
     voice: str = tts.DEFAULT_VOICE
+    seniority: str = DEFAULT_SENIORITY
+    mode: str = "interview"  # "interview" | "guided" — guided is system_design only
 
 
 class ChatRequest(BaseModel):
@@ -157,7 +160,12 @@ def get_design_problems(company: str | None = None):
 def start_session(req: StartRequest):
     is_design = req.interview_type == "system_design"
     active_loader = design_loader if is_design else loader
-    active_interviewer = design_interviewer if is_design else interviewer
+
+    mode = req.mode if (is_design and req.mode == "guided") else "interview"
+    active_interviewer = design_helper if mode == "guided" else (
+        design_interviewer if is_design else interviewer
+    )
+    seniority_level = req.seniority if req.seniority in SENIORITY_LEVELS else DEFAULT_SENIORITY
 
     try:
         problem = active_loader.pick_problem(req.problem_id, req.company)
@@ -174,6 +182,8 @@ def start_session(req: StartRequest):
         "problem": problem,
         "company": req.company,
         "interview_type": req.interview_type,
+        "mode": mode,
+        "seniority": seniority_level,
         "voice": voice,
         "history": [{"role": "assistant", "content": opening}],
         "start_time": time.time(),
@@ -188,6 +198,7 @@ def start_session(req: StartRequest):
         "problem": problem,
         "company": req.company,
         "interview_type": req.interview_type,
+        "mode": mode,
         "opening_message": opening,
     }
 
@@ -203,6 +214,14 @@ def _persona_name(session: dict) -> str:
     return tts.PERSONA_NAMES.get(session.get("voice"), tts.PERSONA_NAMES[tts.DEFAULT_VOICE])
 
 
+def _seniority(session: dict) -> str:
+    return session.get("seniority", DEFAULT_SENIORITY)
+
+
+def _active_design_module(session: dict):
+    return design_helper if session.get("mode") == "guided" else design_interviewer
+
+
 @app.get("/api/sessions")
 def list_sessions():
     summaries = []
@@ -214,6 +233,7 @@ def list_sessions():
             {
                 "session_id": session_id,
                 "interview_type": session["interview_type"],
+                "mode": session.get("mode", "interview"),
                 "company": session["company"],
                 "problem_title": session["problem"]["title"],
                 "problem_difficulty": session["problem"].get("difficulty"),
@@ -234,6 +254,8 @@ def get_session(session_id: str):
         "problem": session["problem"],
         "company": session["company"],
         "interview_type": session["interview_type"],
+        "mode": session.get("mode", "interview"),
+        "seniority": _seniority(session),
         "voice": session.get("voice", tts.DEFAULT_VOICE),
         "history": session["history"],
         "last_code": session["last_code"],
@@ -248,14 +270,14 @@ def chat(session_id: str, req: ChatRequest):
 
     try:
         if is_design:
-            reply = design_interviewer.respond(
+            reply = _active_design_module(session).respond(
                 session["problem"], session["company"], session["history"], req.message,
-                _persona_name(session), session.get("last_canvas_image"),
+                _persona_name(session), _seniority(session), session.get("last_canvas_image"),
             )
         else:
             reply = interviewer.respond(
                 session["problem"], session["company"], session["history"], req.message, req.code,
-                _persona_name(session),
+                _persona_name(session), _seniority(session),
             )
     except InterviewerUnavailable as exc:
         return {"reply": str(exc), "error": True}
@@ -302,15 +324,16 @@ async def _generate_voice_reply(session_id: str, transcript: str) -> None:
     try:
         if session["interview_type"] == "system_design":
             reply = await run_in_threadpool(
-                design_interviewer.maybe_intervene,
+                _active_design_module(session).maybe_intervene,
                 session["problem"], session["company"], session["history"],
-                _persona_name(session), transcript, session.get("last_canvas_image"),
+                _persona_name(session), _seniority(session), transcript,
+                session.get("last_canvas_image"),
             )
         else:
             reply = await run_in_threadpool(
                 interviewer.maybe_intervene,
                 session["problem"], session["company"], session["history"], session["last_code"],
-                _persona_name(session), transcript,
+                _persona_name(session), _seniority(session), transcript,
             )
     except InterviewerUnavailable as exc:
         reply = str(exc)
@@ -377,9 +400,9 @@ def canvas_snapshot(session_id: str, req: CanvasRequest):
 def design_review(session_id: str, req: DesignReviewRequest):
     session = _get_session(session_id)
     try:
-        reply = design_interviewer.review_diagram(
+        reply = _active_design_module(session).review_diagram(
             session["problem"], session["company"], session["history"], req.image_b64,
-            _persona_name(session),
+            _persona_name(session), _seniority(session),
         )
     except InterviewerUnavailable as exc:
         return {"reply": str(exc), "error": True}
@@ -395,7 +418,7 @@ def design_review(session_id: str, req: DesignReviewRequest):
 def design_update(session_id: str, req: DesignUpdateRequest):
     session = _get_session(session_id)
     try:
-        elements = design_interviewer.suggest_diagram_update(
+        elements = _active_design_module(session).suggest_diagram_update(
             session["problem"], session["company"], session["history"],
             req.image_b64, req.current_elements, _persona_name(session),
         )
@@ -412,14 +435,15 @@ def proactive(session_id: str):
 
     try:
         if session["interview_type"] == "system_design":
-            reply = design_interviewer.maybe_intervene(
+            reply = _active_design_module(session).maybe_intervene(
                 session["problem"], session["company"], session["history"],
-                _persona_name(session), None, session.get("last_canvas_image"),
+                _persona_name(session), _seniority(session), None,
+                session.get("last_canvas_image"),
             )
         else:
             reply = interviewer.maybe_intervene(
                 session["problem"], session["company"], session["history"], session["last_code"],
-                _persona_name(session), None,
+                _persona_name(session), _seniority(session), None,
             )
     except InterviewerUnavailable as exc:
         return {"message": str(exc)}

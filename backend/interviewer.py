@@ -1,5 +1,6 @@
 from . import ollama_client
 from .companies import get_profile
+from .seniority import DEFAULT_SENIORITY, get_bar
 
 NO_COMMENT = "NO_COMMENT"
 
@@ -10,7 +11,9 @@ def _numbered(code: str) -> str:
     return "\n".join(f"{str(i).rjust(width)}| {line}" for i, line in enumerate(lines, start=1))
 
 
-def _system_prompt(problem: dict, company: str | None, persona_name: str) -> str:
+def _system_prompt(
+    problem: dict, company: str | None, persona_name: str, seniority: str = DEFAULT_SENIORITY
+) -> str:
     profile = get_profile(company)
     company_label = company if company and company != "General" else "a generalist tech company"
 
@@ -24,6 +27,9 @@ def _system_prompt(problem: dict, company: str | None, persona_name: str) -> str
 of {company_label}. Your name is {persona_name} — introduce yourself with it and answer to it if
 asked, but don't sign or repeat your name in every message.
 Interview style: {profile['style']}
+
+You're interviewing at the {seniority} level. What "good" looks like at this level, and how much
+to lead vs. wait before hinting: {get_bar(seniority)}
 
 Problem: {problem['title']} ({problem['difficulty']})
 {problem['prompt']}
@@ -41,7 +47,7 @@ genuinely stuck — never share all at once, never give the full solution or wri
 Rules:
 - Ask the candidate to explain their approach before they start coding, if they haven't already.
 - Answer clarifying questions using only the constraints/examples above. Never invent new constraints.
-- Give hints progressively and only when asked or clearly stuck. Never write code for the candidate.
+- Give hints progressively, calibrated to the seniority bar above. Never write code for the candidate.
 - Keep every response short: 1-2 sentences is the target, 3 is the ceiling. No preamble, no
   restating the problem or the candidate's own words back to them, no filler like "great
   question" or "let's dive in" — get straight to the point, like a real interviewer typing in a
@@ -54,9 +60,15 @@ Rules:
 
 
 def _history_to_messages(
-    problem: dict, company: str | None, history: list[dict], persona_name: str
+    problem: dict,
+    company: str | None,
+    history: list[dict],
+    persona_name: str,
+    seniority: str = DEFAULT_SENIORITY,
 ) -> list[dict]:
-    messages = [{"role": "system", "content": _system_prompt(problem, company, persona_name)}]
+    messages = [
+        {"role": "system", "content": _system_prompt(problem, company, persona_name, seniority)}
+    ]
     messages.extend({"role": h["role"], "content": h["content"]} for h in history)
     return messages
 
@@ -74,7 +86,13 @@ def opening_message(problem: dict, company: str | None, persona_name: str) -> st
 
 
 def respond(
-    problem: dict, company: str | None, history: list[dict], message: str, code: str, persona_name: str
+    problem: dict,
+    company: str | None,
+    history: list[dict],
+    message: str,
+    code: str,
+    persona_name: str,
+    seniority: str = DEFAULT_SENIORITY,
 ) -> str:
     history = history + [
         {
@@ -82,7 +100,7 @@ def respond(
             "content": f"{message}\n\n--- Candidate's current code (line-numbered) ---\n{_numbered(code)}",
         }
     ]
-    messages = _history_to_messages(problem, company, history, persona_name)
+    messages = _history_to_messages(problem, company, history, persona_name, seniority)
     return ollama_client.chat(messages)
 
 
@@ -92,6 +110,7 @@ def maybe_intervene(
     history: list[dict],
     code: str,
     persona_name: str,
+    seniority: str = DEFAULT_SENIORITY,
     transcript: str | None = None,
 ) -> str | None:
     """Decide whether the interviewer should proactively say something right now.
@@ -132,7 +151,7 @@ Candidate's current code (line-numbered):
 {reply_instructions}
 """
     history = history + [{"role": "user", "content": prompt}]
-    messages = _history_to_messages(problem, company, history, persona_name)
+    messages = _history_to_messages(problem, company, history, persona_name, seniority)
     reply = ollama_client.chat(messages).strip()
     if reply == NO_COMMENT or not reply:
         return None

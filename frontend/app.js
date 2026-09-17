@@ -101,7 +101,16 @@ async function loadPickers() {
       document
         .querySelectorAll("#interview-type-toggle .type-btn")
         .forEach((b) => b.classList.toggle("active", b === btn));
+      $("design-mode-toggle").classList.toggle("hidden", interviewType !== "system_design");
       loadProblems(companySelect.value);
+    });
+  });
+
+  document.querySelectorAll("#design-mode-buttons .type-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document
+        .querySelectorAll("#design-mode-buttons .type-btn")
+        .forEach((b) => b.classList.toggle("active", b === btn));
     });
   });
 
@@ -683,6 +692,8 @@ async function startInterview() {
         company,
         interview_type: interviewType,
         voice: selectedVoice,
+        seniority: $("seniority-select").value,
+        mode: document.querySelector("#design-mode-buttons .type-btn.active")?.dataset.mode || "interview",
       }),
     });
 
@@ -746,8 +757,9 @@ async function loadResumableSessions() {
       title.textContent = s.problem_title;
       const meta = document.createElement("div");
       meta.className = "resume-meta";
+      const typeLabel = isDesign && s.mode === "guided" ? "System Design (Guided)" : isDesign ? "System Design" : "Coding";
       const parts = [
-        isDesign ? "System Design" : "Coding",
+        typeLabel,
         s.company || "General",
         `${s.message_count} messages`,
         formatRelativeTime(s.last_activity),

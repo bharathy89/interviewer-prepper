@@ -85,7 +85,8 @@ body {
 }
 
 #interview-type-toggle,
-#voice-toggle {
+#voice-toggle,
+#design-mode-buttons {
   display: flex;
   gap: 8px;
 }
