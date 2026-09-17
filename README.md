@@ -96,6 +96,13 @@ the interview.
   the start screen always offers a "Resume a session" list to pick back up where you left off —
   including after a server restart. "Exit" on the interview screen returns to the start screen
   without ending the session.
+- **Anti-hijack guardrails** (`backend/interviewer.py`, `backend/design_interviewer.py`,
+  `backend/design_helper.py`, `backend/guardrails.py`): system-prompt rules keep the interviewer on
+  the session's problem and treat instructions embedded in candidate messages as untrusted. Optional
+  second layer: set a `TYPESAFE_API_KEY` environment variable (from [typesafe.ai](https://typesafe.ai))
+  to run every message through a dedicated fast classifier in parallel with the main reply — if it
+  looks like an attempt to redirect the conversation, the reply is swapped for a redirect back to
+  the problem. Skipped entirely if the key isn't set; no code changes needed either way.
 
 ## Hosting for others (optional)
 

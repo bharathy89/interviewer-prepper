@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
-from . import auth, design_helper, design_interviewer, interviewer, monitor, persistence, sandbox
+from . import auth, design_helper, design_interviewer, guardrails, interviewer, monitor, persistence, sandbox
 from .audio import stt, tts
 from .audio.vad import UtteranceSegmenter
 from .companies import list_companies
@@ -222,6 +222,10 @@ def _active_design_module(session: dict):
     return design_helper if session.get("mode") == "guided" else design_interviewer
 
 
+def _redirect_message(problem_title: str) -> str:
+    return f"That's outside this interview — let's get back to {problem_title}."
+
+
 @app.get("/api/sessions")
 def list_sessions():
     summaries = []
@@ -264,23 +268,35 @@ def get_session(session_id: str):
 
 
 @app.post("/api/session/{session_id}/chat")
-def chat(session_id: str, req: ChatRequest):
+async def chat(session_id: str, req: ChatRequest):
     session = _get_session(session_id)
     is_design = session["interview_type"] == "system_design"
+    problem_title = session["problem"]["title"]
 
     try:
         if is_design:
-            reply = _active_design_module(session).respond(
-                session["problem"], session["company"], session["history"], req.message,
-                _persona_name(session), _seniority(session), session.get("last_canvas_image"),
+            reply, hijacked = await asyncio.gather(
+                run_in_threadpool(
+                    _active_design_module(session).respond,
+                    session["problem"], session["company"], session["history"], req.message,
+                    _persona_name(session), _seniority(session), session.get("last_canvas_image"),
+                ),
+                guardrails.is_hijack_attempt(problem_title, req.message),
             )
         else:
-            reply = interviewer.respond(
-                session["problem"], session["company"], session["history"], req.message, req.code,
-                _persona_name(session), _seniority(session),
+            reply, hijacked = await asyncio.gather(
+                run_in_threadpool(
+                    interviewer.respond,
+                    session["problem"], session["company"], session["history"], req.message,
+                    req.code, _persona_name(session), _seniority(session),
+                ),
+                guardrails.is_hijack_attempt(problem_title, req.message),
             )
     except InterviewerUnavailable as exc:
         return {"reply": str(exc), "error": True}
+
+    if hijacked:
+        reply = _redirect_message(problem_title)
 
     if is_design:
         session["history"].append({"role": "user", "content": req.message})
@@ -321,22 +337,32 @@ async def _generate_voice_reply(session_id: str, transcript: str) -> None:
     if session is None:
         return
 
+    problem_title = session["problem"]["title"]
     try:
         if session["interview_type"] == "system_design":
-            reply = await run_in_threadpool(
-                _active_design_module(session).maybe_intervene,
-                session["problem"], session["company"], session["history"],
-                _persona_name(session), _seniority(session), transcript,
-                session.get("last_canvas_image"),
+            reply, hijacked = await asyncio.gather(
+                run_in_threadpool(
+                    _active_design_module(session).maybe_intervene,
+                    session["problem"], session["company"], session["history"],
+                    _persona_name(session), _seniority(session), transcript,
+                    session.get("last_canvas_image"),
+                ),
+                guardrails.is_hijack_attempt(problem_title, transcript),
             )
         else:
-            reply = await run_in_threadpool(
-                interviewer.maybe_intervene,
-                session["problem"], session["company"], session["history"], session["last_code"],
-                _persona_name(session), _seniority(session), transcript,
+            reply, hijacked = await asyncio.gather(
+                run_in_threadpool(
+                    interviewer.maybe_intervene,
+                    session["problem"], session["company"], session["history"],
+                    session["last_code"], _persona_name(session), _seniority(session), transcript,
+                ),
+                guardrails.is_hijack_attempt(problem_title, transcript),
             )
     except InterviewerUnavailable as exc:
-        reply = str(exc)
+        reply, hijacked = str(exc), False
+
+    if hijacked:
+        reply = _redirect_message(problem_title)
 
     if reply:
         session["history"].append({"role": "assistant", "content": reply})
