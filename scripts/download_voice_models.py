@@ -13,7 +13,7 @@ def main() -> None:
     print("Kokoro TTS model ready.")
 
     print("Downloading Whisper STT model (base.en)...")
-    stt._get_model()
+    stt._get_pool()
     print("Whisper STT model ready.")
 
 

@@ -13,6 +13,7 @@ _PERSISTED_FIELDS = [
     "problem",
     "company",
     "interview_type",
+    "user_id",
     "mode",
     "seniority",
     "voice",

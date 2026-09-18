@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
-from . import auth, design_helper, design_interviewer, guardrails, interviewer, monitor, persistence, sandbox
+from . import auth, design_helper, design_interviewer, guardrails, interviewer, monitor, persistence, sandbox, tenancy
 from .audio import stt, tts
 from .audio.vad import UtteranceSegmenter
 from .companies import list_companies
@@ -92,6 +92,19 @@ async def no_cache_static_files(request: Request, call_next):
     return response
 
 
+@app.middleware("http")
+async def assign_tenant(request: Request, call_next):
+    tenant_id, is_new = tenancy.get_or_assign(request)
+    request.state.tenant_id = tenant_id
+    response = await call_next(request)
+    if is_new:
+        response.set_cookie(
+            tenancy.COOKIE_NAME, tenant_id, max_age=tenancy.COOKIE_MAX_AGE,
+            httponly=True, secure=True, samesite="lax",
+        )
+    return response
+
+
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
 
@@ -157,7 +170,7 @@ def get_design_problems(company: str | None = None):
 
 
 @app.post("/api/session/start")
-def start_session(req: StartRequest):
+def start_session(req: StartRequest, request: Request):
     is_design = req.interview_type == "system_design"
     active_loader = design_loader if is_design else loader
 
@@ -182,6 +195,7 @@ def start_session(req: StartRequest):
         "problem": problem,
         "company": req.company,
         "interview_type": req.interview_type,
+        "user_id": request.state.tenant_id,
         "mode": mode,
         "seniority": seniority_level,
         "voice": voice,
@@ -203,9 +217,12 @@ def start_session(req: StartRequest):
     }
 
 
-def _get_session(session_id: str) -> dict:
+def _get_session(session_id: str, request: Request) -> dict:
     session = SESSIONS.get(session_id)
-    if session is None:
+    # Same 404 whether the session doesn't exist or just isn't yours — a
+    # distinct "forbidden" response would let a caller enumerate which
+    # session ids are real even without being able to read them.
+    if session is None or session.get("user_id") != request.state.tenant_id:
         raise HTTPException(status_code=404, detail="Unknown session")
     return session
 
@@ -227,9 +244,11 @@ def _redirect_message(problem_title: str) -> str:
 
 
 @app.get("/api/sessions")
-def list_sessions():
+def list_sessions(request: Request):
     summaries = []
     for session_id, session in SESSIONS.items():
+        if session.get("user_id") != request.state.tenant_id:
+            continue
         last_activity = max(
             session["start_time"], session["last_code_change_at"], session["last_hint_at"]
         )
@@ -251,8 +270,8 @@ def list_sessions():
 
 
 @app.get("/api/session/{session_id}")
-def get_session(session_id: str):
-    session = _get_session(session_id)
+def get_session(session_id: str, request: Request):
+    session = _get_session(session_id, request)
     return {
         "session_id": session_id,
         "problem": session["problem"],
@@ -268,8 +287,8 @@ def get_session(session_id: str):
 
 
 @app.post("/api/session/{session_id}/chat")
-async def chat(session_id: str, req: ChatRequest):
-    session = _get_session(session_id)
+async def chat(session_id: str, req: ChatRequest, request: Request):
+    session = _get_session(session_id, request)
     is_design = session["interview_type"] == "system_design"
     problem_title = session["problem"]["title"]
 
@@ -313,14 +332,14 @@ async def chat(session_id: str, req: ChatRequest):
 
 
 @app.post("/api/session/{session_id}/run")
-def run(session_id: str, req: CodeRequest):
-    _get_session(session_id)
+def run(session_id: str, req: CodeRequest, request: Request):
+    _get_session(session_id, request)
     return sandbox.run_code(req.code)
 
 
 @app.post("/api/session/{session_id}/mic")
-def set_mic(session_id: str, req: MicRequest):
-    session = _get_session(session_id)
+def set_mic(session_id: str, req: MicRequest, request: Request):
+    session = _get_session(session_id, request)
     session["mic_enabled"] = req.enabled
     session["vad_segmenter"].reset()
     _persist(session_id)
@@ -373,7 +392,7 @@ async def _generate_voice_reply(session_id: str, transcript: str) -> None:
 
 @app.post("/api/session/{session_id}/audio_chunk")
 async def audio_chunk(session_id: str, request: Request):
-    session = _get_session(session_id)
+    session = _get_session(session_id, request)
     if not session["mic_enabled"]:
         return {"transcript": None, "reply": None}
 
@@ -404,8 +423,8 @@ async def audio_chunk(session_id: str, request: Request):
 
 
 @app.post("/api/session/{session_id}/code_snapshot")
-def code_snapshot(session_id: str, req: CodeRequest):
-    session = _get_session(session_id)
+def code_snapshot(session_id: str, req: CodeRequest, request: Request):
+    session = _get_session(session_id, request)
     changed_lines = monitor.record_code_snapshot(session, req.code)
     if changed_lines:
         _persist(session_id)
@@ -413,8 +432,8 @@ def code_snapshot(session_id: str, req: CodeRequest):
 
 
 @app.post("/api/session/{session_id}/canvas_snapshot")
-def canvas_snapshot(session_id: str, req: CanvasRequest):
-    session = _get_session(session_id)
+def canvas_snapshot(session_id: str, req: CanvasRequest, request: Request):
+    session = _get_session(session_id, request)
     monitor.record_code_snapshot(session, json.dumps(req.shapes))
     if req.image_b64:
         session["last_canvas_image"] = req.image_b64
@@ -423,8 +442,8 @@ def canvas_snapshot(session_id: str, req: CanvasRequest):
 
 
 @app.post("/api/session/{session_id}/design_review")
-def design_review(session_id: str, req: DesignReviewRequest):
-    session = _get_session(session_id)
+def design_review(session_id: str, req: DesignReviewRequest, request: Request):
+    session = _get_session(session_id, request)
     try:
         reply = _active_design_module(session).review_diagram(
             session["problem"], session["company"], session["history"], req.image_b64,
@@ -441,8 +460,8 @@ def design_review(session_id: str, req: DesignReviewRequest):
 
 
 @app.post("/api/session/{session_id}/design_update")
-def design_update(session_id: str, req: DesignUpdateRequest):
-    session = _get_session(session_id)
+def design_update(session_id: str, req: DesignUpdateRequest, request: Request):
+    session = _get_session(session_id, request)
     try:
         elements = _active_design_module(session).suggest_diagram_update(
             session["problem"], session["company"], session["history"],
@@ -454,8 +473,8 @@ def design_update(session_id: str, req: DesignUpdateRequest):
 
 
 @app.get("/api/session/{session_id}/proactive")
-def proactive(session_id: str):
-    session = _get_session(session_id)
+def proactive(session_id: str, request: Request):
+    session = _get_session(session_id, request)
     if not monitor.check_stagnation(session):
         return {"message": None}
 

@@ -1,14 +1,33 @@
+import os
+import queue
+
 import numpy as np
 from faster_whisper import WhisperModel
 
-_model: WhisperModel | None = None
+# faster-whisper/CTranslate2 isn't guaranteed safe (or fast) for concurrent
+# calls on one model instance — a single shared model meant two overlapping
+# live-voice sessions could corrupt or serialize each other's transcription.
+# A small pool of independent instances gives real bounded parallelism (up to
+# POOL_SIZE concurrent transcribes) with automatic backpressure beyond that:
+# queue.Queue.get() just blocks until an instance frees up, which is exactly
+# right since transcribe() already runs on a worker thread (run_in_threadpool
+# in main.py), not the asyncio event loop.
+#
+# Each instance is ~150MB resident (base.en, int8) — factor that into VM
+# sizing alongside tts.py's pool (larger, ~330MB/instance) when deploying.
+POOL_SIZE = int(os.environ.get("STT_POOL_SIZE", min(os.cpu_count() or 2, 4)))
+
+_pool: queue.Queue[WhisperModel] | None = None
 
 
-def _get_model() -> WhisperModel:
-    global _model
-    if _model is None:
-        _model = WhisperModel("base.en", device="cpu", compute_type="int8")
-    return _model
+def _get_pool() -> queue.Queue[WhisperModel]:
+    global _pool
+    if _pool is None:
+        pool: queue.Queue[WhisperModel] = queue.Queue()
+        for _ in range(POOL_SIZE):
+            pool.put(WhisperModel("base.en", device="cpu", compute_type="int8"))
+        _pool = pool
+    return _pool
 
 
 # Whisper is prone to hallucinating stock phrases ("thank you", "bye bye", ...)
@@ -35,19 +54,24 @@ def transcribe(pcm_bytes: bytes) -> str:
         return ""
 
     audio = np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
-    segments, _ = _get_model().transcribe(
-        audio,
-        language="en",
-        beam_size=1,
-        vad_filter=True,
-        vad_parameters={"min_silence_duration_ms": 500},
-        condition_on_previous_text=False,
-        compression_ratio_threshold=2.4,
-    )
-    kept = [
-        segment.text.strip()
-        for segment in segments
-        if segment.no_speech_prob < NO_SPEECH_PROB_THRESHOLD
-        and segment.avg_logprob > AVG_LOGPROB_THRESHOLD
-    ]
-    return " ".join(kept).strip()
+    pool = _get_pool()
+    model = pool.get()
+    try:
+        segments, _ = model.transcribe(
+            audio,
+            language="en",
+            beam_size=1,
+            vad_filter=True,
+            vad_parameters={"min_silence_duration_ms": 500},
+            condition_on_previous_text=False,
+            compression_ratio_threshold=2.4,
+        )
+        kept = [
+            segment.text.strip()
+            for segment in segments
+            if segment.no_speech_prob < NO_SPEECH_PROB_THRESHOLD
+            and segment.avg_logprob > AVG_LOGPROB_THRESHOLD
+        ]
+        return " ".join(kept).strip()
+    finally:
+        pool.put(model)

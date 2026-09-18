@@ -1,4 +1,6 @@
 import io
+import os
+import queue
 import re
 import urllib.request
 from pathlib import Path
@@ -43,7 +45,14 @@ PERSONA_NAMES = {
 # input straight into voice lookup.
 ALLOWED_VOICES = set(VOICE_SPEEDS)
 
-_kokoro: Kokoro | None = None
+# Same reasoning as stt.py's pool: a single shared Kokoro/onnxruntime session
+# meant two overlapping voice replies could contend or serialize unexpectedly.
+# ~330MB resident per instance (fp32) — pool size trades RAM for how many
+# replies can synthesize truly in parallel; sized down from stt.py's default
+# since TTS instances are the heavier of the two.
+POOL_SIZE = int(os.environ.get("TTS_POOL_SIZE", min(os.cpu_count() or 2, 3)))
+
+_pool: queue.Queue[Kokoro] | None = None
 
 
 def _ensure_model_files() -> None:
@@ -54,12 +63,15 @@ def _ensure_model_files() -> None:
             Path(str(path) + ".partial").rename(path)
 
 
-def _get_kokoro() -> Kokoro:
-    global _kokoro
-    if _kokoro is None:
+def _get_pool() -> queue.Queue[Kokoro]:
+    global _pool
+    if _pool is None:
         _ensure_model_files()
-        _kokoro = Kokoro(str(MODEL_PATH), str(VOICES_PATH))
-    return _kokoro
+        pool: queue.Queue[Kokoro] = queue.Queue()
+        for _ in range(POOL_SIZE):
+            pool.put(Kokoro(str(MODEL_PATH), str(VOICES_PATH)))
+        _pool = pool
+    return _pool
 
 
 def _strip_markdown(text: str) -> str:
@@ -75,9 +87,14 @@ def synthesize(text: str, voice: str = DEFAULT_VOICE) -> bytes:
     if voice not in ALLOWED_VOICES:
         voice = DEFAULT_VOICE
     speed = VOICE_SPEEDS.get(voice, DEFAULT_SPEED)
-    samples, sample_rate = _get_kokoro().create(
-        _strip_markdown(text), voice=voice, speed=speed, lang="en-us"
-    )
+    pool = _get_pool()
+    kokoro = pool.get()
+    try:
+        samples, sample_rate = kokoro.create(
+            _strip_markdown(text), voice=voice, speed=speed, lang="en-us"
+        )
+    finally:
+        pool.put(kokoro)
     buffer = io.BytesIO()
     sf.write(buffer, samples, sample_rate, format="WAV")
     return buffer.getvalue()
